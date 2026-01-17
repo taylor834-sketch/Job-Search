@@ -5,7 +5,10 @@
       "Bash(git init:*)",
       "Bash(git add:*)",
       "Bash(git commit -m \"$(cat <<''EOF''\nInitial commit: Job Search Aggregator\n\nFeatures:\n- Multi-source job scraping (LinkedIn, BuiltIn, Remote sites, Google Jobs)\n- Advanced filtering (job title, location type, company size, industry, salary)\n- Google Sheets integration for automatic data storage\n- Modern React UI with responsive design\n- Job deduplication across sources\n- Complete documentation and setup guides\n\nTech Stack:\n- Backend: Node.js, Express, Puppeteer, Axios, Cheerio\n- Frontend: React 18, Vite, React-Select, RC-Slider\n- Integration: Google Sheets API\nEOF\n)\")",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(git remote add:*)",
+      "Bash(git branch:*)",
+      "Bash(git push:*)"
     ]
   }
 }
