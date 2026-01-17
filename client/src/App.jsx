@@ -1,15 +1,18 @@
 import { useState } from 'react';
 import SearchForm from './components/SearchForm';
 import JobResults from './components/JobResults';
+import JobActions from './components/JobActions';
 import './App.css';
 
 function App() {
   const [jobs, setJobs] = useState([]);
+  const [searchCriteria, setSearchCriteria] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const handleSearchResults = (results) => {
+  const handleSearchResults = (results, criteria) => {
     setJobs(results);
+    setSearchCriteria(criteria);
   };
 
   const handleLoading = (isLoading) => {
@@ -48,7 +51,10 @@ function App() {
         )}
 
         {!loading && jobs.length > 0 && (
-          <JobResults jobs={jobs} />
+          <>
+            <JobActions jobs={jobs} searchCriteria={searchCriteria} />
+            <JobResults jobs={jobs} />
+          </>
         )}
       </div>
     </div>

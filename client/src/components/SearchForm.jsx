@@ -70,7 +70,7 @@ function SearchForm({ onResults, onLoading, onError }) {
       };
 
       const results = await searchJobs(searchParams);
-      onResults(results.jobs || []);
+      onResults(results.jobs || [], searchParams);
 
       if (results.jobs.length === 0) {
         onError('No jobs found. Try adjusting your search criteria.');

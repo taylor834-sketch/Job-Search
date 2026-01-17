@@ -22,9 +22,12 @@
     "puppeteer": "^21.6.1",
     "axios": "^1.6.2",
     "cheerio": "^1.0.0-rc.12",
-    "googleapis": "^128.0.0",
     "date-fns": "^3.0.6",
-    "node-cron": "^3.0.3"
+    "node-cron": "^3.0.3",
+    "nodemailer": "^6.9.7",
+    "exceljs": "^4.4.0",
+    "uuid": "^9.0.1",
+    "node-json-db": "^2.3.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.2",

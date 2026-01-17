@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import jobRoutes from './routes/jobRoutes.js';
+import { initializeSchedulers } from './utils/scheduler.js';
 
 dotenv.config();
 
@@ -33,4 +34,5 @@ if (process.env.NODE_ENV === 'production') {
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+  initializeSchedulers();
 });

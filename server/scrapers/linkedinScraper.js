@@ -40,6 +40,7 @@ export const scrapeLinkedIn = async (filters) => {
         const companyElement = card.querySelector('.base-search-card__subtitle');
         const locationElement = card.querySelector('.job-search-card__location');
         const linkElement = card.querySelector('a.base-card__full-link');
+        const dateElement = card.querySelector('time');
 
         if (titleElement && companyElement && linkElement) {
           results.push({
@@ -48,7 +49,8 @@ export const scrapeLinkedIn = async (filters) => {
             location: locationElement?.textContent.trim() || 'Not specified',
             link: linkElement.href.split('?')[0],
             description: '',
-            salary: 'Not specified'
+            salary: 'Not specified',
+            postingDate: dateElement?.getAttribute('datetime') || null
           });
         }
       });
@@ -60,6 +62,7 @@ export const scrapeLinkedIn = async (filters) => {
       ...job,
       source: 'LinkedIn',
       datePulled: format(new Date(), 'yyyy-MM-dd HH:mm:ss'),
+      postingDate: job.postingDate || format(new Date(), 'yyyy-MM-dd'),
       companySize: 'Not specified',
       industry: 'Not specified'
     }));
