@@ -1,6 +1,5 @@
 import cron from 'node-cron';
 import { getAllSavedSearches, updateLastRun, filterJobsByPostingDate, filterNewJobs, markMultipleJobsAsSeen, cleanupOldSeenJobs } from './database.js';
-import { scrapeLinkedIn } from '../scrapers/linkedinScraper.js';
 import { scrapeBuiltIn } from '../scrapers/builtinScraper.js';
 import { scrapeRemoteJobs } from '../scrapers/remoteJobsScraper.js';
 import { scrapeGoogleJobs } from '../scrapers/googleJobsScraper.js';
@@ -14,10 +13,7 @@ const runScheduledSearch = async (search) => {
     const { searchCriteria } = search;
     const jobPromises = [];
 
-    // Run scrapers based on sources
-    if (!searchCriteria.sources || searchCriteria.sources.includes('linkedin')) {
-      jobPromises.push(scrapeLinkedIn(searchCriteria));
-    }
+    // Run scrapers based on sources (LinkedIn removed - Puppeteer too heavy)
 
     if (!searchCriteria.sources || searchCriteria.sources.includes('builtin')) {
       jobPromises.push(scrapeBuiltIn(searchCriteria));

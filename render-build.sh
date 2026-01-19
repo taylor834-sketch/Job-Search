@@ -2,11 +2,11 @@
 # Render build script
 
 echo "Installing root dependencies..."
-npm install --legacy-peer-deps
+npm install
 
 echo "Installing client dependencies..."
 cd client
-npm install --legacy-peer-deps
+npm install
 
 echo "Building client..."
 npm run build
