@@ -1,4 +1,3 @@
-import { scrapeLinkedIn } from '../scrapers/linkedinScraper.js';
 import { scrapeBuiltIn } from '../scrapers/builtinScraper.js';
 import { scrapeRemoteJobs } from '../scrapers/remoteJobsScraper.js';
 import { scrapeGoogleJobs } from '../scrapers/googleJobsScraper.js';
@@ -23,18 +22,8 @@ export const searchJobs = async (req, res) => {
 
     const jobPromises = [];
 
-    if (!sources || sources.includes('linkedin')) {
-      jobPromises.push(
-        scrapeLinkedIn({
-          jobTitle,
-          locationType,
-          companySizes,
-          industries,
-          minSalary,
-          maxSalary
-        })
-      );
-    }
+    // LinkedIn scraper removed to reduce build size (Puppeteer dependency too large)
+    // Keeping 4 other sources: BuiltIn, Remote Jobs, Google Jobs
 
     if (!sources || sources.includes('builtin')) {
       jobPromises.push(

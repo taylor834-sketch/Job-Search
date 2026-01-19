@@ -28,9 +28,6 @@
     "uuid": "^9.0.1",
     "node-json-db": "^2.3.0"
   },
-  "optionalDependencies": {
-    "puppeteer": "^21.6.1"
-  },
   "devDependencies": {
     "nodemon": "^3.0.2",
     "concurrently": "^8.2.2"
