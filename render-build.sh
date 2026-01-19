@@ -9,6 +9,6 @@ cd client
 npm install
 
 echo "Building client..."
-npm run build
+npx vite build
 
 echo "Build complete!"
