@@ -12,103 +12,41 @@ export const searchJobs = async (req, res) => {
     const {
       jobTitle,
       locationType, // ['remote', 'onsite', 'hybrid']
+      location, // City, State for onsite/hybrid
       companySizes, // ['1-10', '11-50', '51-200', '201-500', '501-1000', '1001+']
       industries, // array of industries
       minSalary,
-      maxSalary,
-      sources // ['linkedin', 'builtin', 'remote', 'google']
+      maxSalary
     } = req.body;
 
     console.log('Starting job search with params:', req.body);
 
-    const jobPromises = [];
-
-    // JSearch API - searches Google Jobs, LinkedIn, Indeed (primary source)
-    jobPromises.push(
-      searchJSearchAPI({
-        jobTitle,
-        locationType,
-        companySizes,
-        industries,
-        minSalary,
-        maxSalary
-      })
-    );
-
-    // Backup scrapers (may not work due to blocking)
-    if (!sources || sources.includes('builtin')) {
-      jobPromises.push(
-        scrapeBuiltIn({
-          jobTitle,
-          locationType,
-          companySizes,
-          industries,
-          minSalary,
-          maxSalary
-        })
-      );
-    }
-
-    if (!sources || sources.includes('remote')) {
-      jobPromises.push(
-        scrapeRemoteJobs({
-          jobTitle,
-          locationType,
-          companySizes,
-          industries,
-          minSalary,
-          maxSalary
-        })
-      );
-    }
-
-    if (!sources || sources.includes('google')) {
-      jobPromises.push(
-        scrapeGoogleJobs({
-          jobTitle,
-          locationType,
-          companySizes,
-          industries,
-          minSalary,
-          maxSalary
-        })
-      );
-    }
-
-    const results = await Promise.allSettled(jobPromises);
-
-    let allJobs = [];
-    const scraperNames = ['JSearch API', 'BuiltIn', 'Remote Jobs', 'Google Jobs'];
-    let scraperIndex = 0;
-
-    results.forEach((result) => {
-      const scraperName = scraperNames[scraperIndex] || `Scraper ${scraperIndex}`;
-      if (result.status === 'fulfilled') {
-        console.log(`${scraperName}: Found ${result.value.length} jobs`);
-        allJobs = allJobs.concat(result.value);
-      } else {
-        console.error(`${scraperName} failed:`, result.reason.message || result.reason);
-      }
-      scraperIndex++;
+    // Only use JSearch API - it already covers Google Jobs, LinkedIn, Indeed, and more
+    const jobs = await searchJSearchAPI({
+      jobTitle,
+      locationType,
+      location,
+      companySizes,
+      industries,
+      minSalary,
+      maxSalary
     });
 
-    const uniqueJobs = deduplicateJobs(allJobs);
+    console.log(`JSearch API returned ${jobs.length} jobs after filtering`);
 
-    console.log(`Found ${uniqueJobs.length} unique jobs from ${allJobs.length} total results`);
-
-    if (uniqueJobs.length === 0 && jobPromises.length > 0) {
+    if (jobs.length === 0) {
       return res.json({
         success: true,
         count: 0,
         jobs: [],
-        message: 'No jobs found. Try different search criteria or check the logs for scraper errors.'
+        message: 'No jobs found matching your criteria. Try adjusting your filters (salary range, location, etc.)'
       });
     }
 
     res.json({
       success: true,
-      count: uniqueJobs.length,
-      jobs: uniqueJobs
+      count: jobs.length,
+      jobs: jobs
     });
   } catch (error) {
     console.error('Error in searchJobs:', error);

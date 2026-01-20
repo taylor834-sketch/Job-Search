@@ -2,7 +2,7 @@ import axios from 'axios';
 import { format } from 'date-fns';
 
 export const searchJSearchAPI = async (filters) => {
-  const { jobTitle, locationType, minSalary, maxSalary } = filters;
+  const { jobTitle, locationType, location, minSalary, maxSalary } = filters;
 
   console.log('Searching JSearch API (Google Jobs, LinkedIn, Indeed)...');
 
@@ -14,13 +14,10 @@ export const searchJSearchAPI = async (filters) => {
       return [];
     }
 
-    // Build search query
-    const query = jobTitle || 'software engineer';
-
-    // Build employment types based on location type
-    const employmentTypes = [];
-    if (locationType?.includes('remote')) {
-      employmentTypes.push('FULLTIME');
+    // Build search query with location if provided
+    let query = jobTitle || 'software engineer';
+    if (location && (locationType?.includes('onsite') || locationType?.includes('hybrid'))) {
+      query = `${query} in ${location}`;
     }
 
     // Build the request - fetch multiple pages for more results
@@ -32,7 +29,7 @@ export const searchJSearchAPI = async (filters) => {
         page: '1',
         num_pages: '10', // Request 10 pages to get more results
         date_posted: 'all',
-        remote_jobs_only: locationType?.includes('remote') ? 'true' : 'false'
+        remote_jobs_only: locationType?.includes('remote') && locationType.length === 1 ? 'true' : 'false'
       },
       headers: {
         'X-RapidAPI-Key': apiKey,
