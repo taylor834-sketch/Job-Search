@@ -20,18 +20,6 @@ const companySizeOptions = [
   { value: '1001+', label: '1001+ employees' }
 ];
 
-const industryOptions = [
-  { value: 'technology', label: 'Technology' },
-  { value: 'finance', label: 'Finance' },
-  { value: 'healthcare', label: 'Healthcare' },
-  { value: 'education', label: 'Education' },
-  { value: 'retail', label: 'Retail' },
-  { value: 'manufacturing', label: 'Manufacturing' },
-  { value: 'consulting', label: 'Consulting' },
-  { value: 'media', label: 'Media & Entertainment' },
-  { value: 'other', label: 'Other' }
-];
-
 // Common US cities by state for autocomplete
 const usCities = {
   'oregon': ['Portland', 'Eugene', 'Salem', 'Bend', 'Corvallis'],
@@ -69,7 +57,6 @@ function SearchForm({ onResults, onLoading, onError }) {
   const [location, setLocation] = useState('');
   const [locationSuggestions, setLocationSuggestions] = useState([]);
   const [companySizes, setCompanySizes] = useState([]);
-  const [industries, setIndustries] = useState([]);
   const [salaryRange, setSalaryRange] = useState([30000, 200000]);
   const [datePosted, setDatePosted] = useState('all');
 
@@ -121,11 +108,6 @@ function SearchForm({ onResults, onLoading, onError }) {
     setCompanySizes(companySizeOptions);
   };
 
-  // Select all industries
-  const selectAllIndustries = () => {
-    setIndustries(industryOptions);
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     onError(null);
@@ -148,7 +130,6 @@ function SearchForm({ onResults, onLoading, onError }) {
         locationType: locationTypes.map(opt => opt.value),
         location: showLocationInput ? location.trim() : undefined,
         companySizes: companySizes.map(opt => opt.value),
-        industries: industries.map(opt => opt.value),
         minSalary: salaryRange[0],
         maxSalary: salaryRange[1],
         datePosted: datePosted
@@ -244,62 +225,32 @@ function SearchForm({ onResults, onLoading, onError }) {
         )}
       </div>
 
-      <div className="form-row">
-        <div className="form-group">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <label>Company Size</label>
-            <button
-              type="button"
-              onClick={selectAllCompanySizes}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: '#667eea',
-                cursor: 'pointer',
-                fontSize: '0.875rem',
-                textDecoration: 'underline'
-              }}
-            >
-              Select All
-            </button>
-          </div>
-          <Select
-            isMulti
-            options={companySizeOptions}
-            value={companySizes}
-            onChange={setCompanySizes}
-            placeholder="Select company sizes..."
-            className="select-input"
-          />
+      <div className="form-group">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <label>Company Size</label>
+          <button
+            type="button"
+            onClick={selectAllCompanySizes}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#667eea',
+              cursor: 'pointer',
+              fontSize: '0.875rem',
+              textDecoration: 'underline'
+            }}
+          >
+            Select All
+          </button>
         </div>
-
-        <div className="form-group">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <label>Industry</label>
-            <button
-              type="button"
-              onClick={selectAllIndustries}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: '#667eea',
-                cursor: 'pointer',
-                fontSize: '0.875rem',
-                textDecoration: 'underline'
-              }}
-            >
-              Select All
-            </button>
-          </div>
-          <Select
-            isMulti
-            options={industryOptions}
-            value={industries}
-            onChange={setIndustries}
-            placeholder="Select industries..."
-            className="select-input"
-          />
-        </div>
+        <Select
+          isMulti
+          options={companySizeOptions}
+          value={companySizes}
+          onChange={setCompanySizes}
+          placeholder="Select company sizes..."
+          className="select-input"
+        />
       </div>
 
       <div className="form-group">

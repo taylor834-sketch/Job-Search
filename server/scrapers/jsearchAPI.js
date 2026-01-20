@@ -45,8 +45,15 @@ export const searchJSearchAPI = async (filters) => {
 
     // Build search query with location if provided
     let query = jobTitle || 'software engineer';
+
+    // Add location for onsite/hybrid jobs
     if (location && (locationType?.includes('onsite') || locationType?.includes('hybrid'))) {
       query = `${query} in ${location}`;
+    }
+
+    // Add "remote" to query when remote is selected to get better remote-specific results
+    if (locationType?.includes('remote')) {
+      query = `${query} remote`;
     }
 
     // Map datePosted values to JSearch API format
@@ -58,6 +65,9 @@ export const searchJSearchAPI = async (filters) => {
       'month': 'month'
     };
 
+    // Determine if we want ONLY remote jobs
+    const isRemoteOnly = locationType?.includes('remote') && locationType.length === 1;
+
     // Build the request - fetch multiple pages for more results
     const options = {
       method: 'GET',
@@ -67,7 +77,7 @@ export const searchJSearchAPI = async (filters) => {
         page: '1',
         num_pages: '10', // Request 10 pages to get more results
         date_posted: datePostedMap[datePosted] || 'all',
-        remote_jobs_only: locationType?.includes('remote') && locationType.length === 1 ? 'true' : 'false'
+        remote_jobs_only: isRemoteOnly ? 'true' : 'false'
       },
       headers: {
         'X-RapidAPI-Key': apiKey,
@@ -146,6 +156,29 @@ export const searchJSearchAPI = async (filters) => {
         }
         if (maxSalary && salaryValue > maxSalary) {
           return null; // Will be filtered out
+        }
+
+        // Additional remote filtering - when Remote Only is selected, filter out hybrid/onsite jobs
+        if (isRemoteOnly) {
+          const jobTitle = (job.job_title || '').toLowerCase();
+          const jobDescription = (job.job_description || '').toLowerCase();
+          const location = (job.job_city || '').toLowerCase();
+
+          // Filter out jobs that mention hybrid or onsite/in-office
+          const hybridKeywords = ['hybrid', 'in-office', 'onsite', 'on-site', 'in office'];
+          const hasHybridKeyword = hybridKeywords.some(keyword =>
+            jobTitle.includes(keyword) || jobDescription.includes(keyword)
+          );
+
+          // Filter out jobs with specific city locations (remote jobs typically don't have cities)
+          const hasSpecificLocation = job.job_city && job.job_state &&
+            !job.job_city.toLowerCase().includes('remote') &&
+            !job.job_city.toLowerCase().includes('anywhere');
+
+          // If job mentions hybrid keywords or has a specific city location, filter it out
+          if (hasHybridKeyword || (hasSpecificLocation && !job.job_is_remote)) {
+            return null;
+          }
         }
 
         // Parse posting date
