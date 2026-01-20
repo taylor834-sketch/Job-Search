@@ -31,7 +31,7 @@ const extractSalaryFromText = (text) => {
 };
 
 export const searchJSearchAPI = async (filters) => {
-  const { jobTitle, locationType, location, minSalary, maxSalary } = filters;
+  const { jobTitle, locationType, location, minSalary, maxSalary, datePosted } = filters;
 
   console.log('Searching JSearch API (Google Jobs, LinkedIn, Indeed)...');
 
@@ -49,6 +49,15 @@ export const searchJSearchAPI = async (filters) => {
       query = `${query} in ${location}`;
     }
 
+    // Map datePosted values to JSearch API format
+    const datePostedMap = {
+      'all': 'all',
+      'today': 'today',
+      '3days': '3days',
+      'week': 'week',
+      'month': 'month'
+    };
+
     // Build the request - fetch multiple pages for more results
     const options = {
       method: 'GET',
@@ -57,7 +66,7 @@ export const searchJSearchAPI = async (filters) => {
         query: query,
         page: '1',
         num_pages: '10', // Request 10 pages to get more results
-        date_posted: 'all',
+        date_posted: datePostedMap[datePosted] || 'all',
         remote_jobs_only: locationType?.includes('remote') && locationType.length === 1 ? 'true' : 'false'
       },
       headers: {

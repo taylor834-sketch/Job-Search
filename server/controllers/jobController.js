@@ -16,7 +16,8 @@ export const searchJobs = async (req, res) => {
       companySizes, // ['1-10', '11-50', '51-200', '201-500', '501-1000', '1001+']
       industries, // array of industries
       minSalary,
-      maxSalary
+      maxSalary,
+      datePosted
     } = req.body;
 
     console.log('Starting job search with params:', req.body);
@@ -29,7 +30,8 @@ export const searchJobs = async (req, res) => {
       companySizes,
       industries,
       minSalary,
-      maxSalary
+      maxSalary,
+      datePosted
     });
 
     console.log(`JSearch API returned ${jobs.length} jobs after filtering`);

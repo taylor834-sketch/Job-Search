@@ -71,6 +71,7 @@ function SearchForm({ onResults, onLoading, onError }) {
   const [companySizes, setCompanySizes] = useState([]);
   const [industries, setIndustries] = useState([]);
   const [salaryRange, setSalaryRange] = useState([30000, 200000]);
+  const [datePosted, setDatePosted] = useState('all');
 
   // Check if location input should be shown
   const showLocationInput = locationTypes.some(
@@ -149,7 +150,8 @@ function SearchForm({ onResults, onLoading, onError }) {
         companySizes: companySizes.map(opt => opt.value),
         industries: industries.map(opt => opt.value),
         minSalary: salaryRange[0],
-        maxSalary: salaryRange[1]
+        maxSalary: salaryRange[1],
+        datePosted: datePosted
       };
 
       const results = await searchJobs(searchParams);
@@ -325,6 +327,22 @@ function SearchForm({ onResults, onLoading, onError }) {
             ]}
           />
         </div>
+      </div>
+
+      <div className="form-group">
+        <label htmlFor="datePosted">Date Posted</label>
+        <select
+          id="datePosted"
+          value={datePosted}
+          onChange={(e) => setDatePosted(e.target.value)}
+          className="text-input"
+        >
+          <option value="all">All time</option>
+          <option value="today">Today</option>
+          <option value="3days">Last 3 Days</option>
+          <option value="week">Last 7 Days</option>
+          <option value="month">Last 30 Days</option>
+        </select>
       </div>
 
       <button type="submit" className="submit-button">
