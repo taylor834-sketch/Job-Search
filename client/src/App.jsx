@@ -26,8 +26,8 @@ function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <h1>Job Search Aggregator</h1>
-        <p>Search across LinkedIn, BuiltIn, Remote Job Sites, and Google Jobs</p>
+        <h1>🤖 Jobinator 3000</h1>
+        <p>Your AI-Powered Job Search Companion</p>
       </header>
 
       <div className="app-content">
@@ -57,6 +57,10 @@ function App() {
           </>
         )}
       </div>
+
+      <footer className="app-footer">
+        <p>Built by <a href="https://realsimplerevops.com" target="_blank" rel="noopener noreferrer">Real Simple RevOps</a></p>
+      </footer>
     </div>
   );
 }

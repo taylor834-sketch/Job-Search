@@ -1,6 +1,9 @@
 .app {
   max-width: 1400px;
   margin: 0 auto;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 .app-header {
@@ -10,14 +13,17 @@
 }
 
 .app-header h1 {
-  font-size: 3rem;
+  font-size: 3.5rem;
   margin-bottom: 10px;
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+  font-weight: 800;
+  letter-spacing: -1px;
 }
 
 .app-header p {
   font-size: 1.2rem;
   opacity: 0.95;
+  font-weight: 500;
 }
 
 .app-content {
@@ -25,6 +31,7 @@
   border-radius: 20px;
   padding: 40px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  flex: 1;
 }
 
 .error-message {
@@ -62,12 +69,42 @@
   color: #666;
 }
 
+.app-footer {
+  text-align: center;
+  color: white;
+  padding: 30px 20px;
+  margin-top: 40px;
+}
+
+.app-footer p {
+  font-size: 1rem;
+  opacity: 0.9;
+  margin: 0;
+}
+
+.app-footer a {
+  color: white;
+  text-decoration: none;
+  font-weight: 600;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.3);
+  transition: border-color 0.2s;
+}
+
+.app-footer a:hover {
+  border-bottom-color: white;
+}
+
 @media (max-width: 768px) {
   .app-header h1 {
-    font-size: 2rem;
+    font-size: 2.5rem;
   }
 
   .app-content {
     padding: 20px;
+  }
+
+  .app-footer {
+    padding: 20px;
+    margin-top: 30px;
   }
 }
