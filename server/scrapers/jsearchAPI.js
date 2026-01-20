@@ -162,21 +162,59 @@ export const searchJSearchAPI = async (filters) => {
         if (isRemoteOnly) {
           const jobTitle = (job.job_title || '').toLowerCase();
           const jobDescription = (job.job_description || '').toLowerCase();
-          const location = (job.job_city || '').toLowerCase();
+          const jobHighlights = job.job_highlights ?
+            [...(job.job_highlights.Qualifications || []),
+             ...(job.job_highlights.Responsibilities || []),
+             ...(job.job_highlights.Benefits || [])].join(' ').toLowerCase() : '';
 
-          // Filter out jobs that mention hybrid or onsite/in-office
-          const hybridKeywords = ['hybrid', 'in-office', 'onsite', 'on-site', 'in office'];
-          const hasHybridKeyword = hybridKeywords.some(keyword =>
-            jobTitle.includes(keyword) || jobDescription.includes(keyword)
+          // Comprehensive list of non-remote keywords
+          const nonRemoteKeywords = [
+            'hybrid',
+            'in-office',
+            'onsite',
+            'on-site',
+            'in office',
+            'office-based',
+            'office based',
+            'work from office',
+            'days in office',
+            'day in office',
+            'days per week in',
+            'days/week in',
+            'x days in',
+            '2 days',
+            '3 days',
+            '4 days',
+            'some days',
+            'return to office',
+            'rto',
+            'in person',
+            'in-person'
+          ];
+
+          // Check title, description, and highlights for non-remote keywords
+          const hasNonRemoteKeyword = nonRemoteKeywords.some(keyword =>
+            jobTitle.includes(keyword) ||
+            jobDescription.includes(keyword) ||
+            jobHighlights.includes(keyword)
           );
 
           // Filter out jobs with specific city locations (remote jobs typically don't have cities)
-          const hasSpecificLocation = job.job_city && job.job_state &&
+          // BUT be more lenient - only filter if it has a city AND is not marked as remote
+          const hasSpecificCityLocation = job.job_city &&
+            job.job_state &&
             !job.job_city.toLowerCase().includes('remote') &&
-            !job.job_city.toLowerCase().includes('anywhere');
+            !job.job_city.toLowerCase().includes('anywhere') &&
+            !job.job_city.toLowerCase().includes('worldwide') &&
+            !job.job_is_remote;
 
-          // If job mentions hybrid keywords or has a specific city location, filter it out
-          if (hasHybridKeyword || (hasSpecificLocation && !job.job_is_remote)) {
+          // STRICT: If job mentions any non-remote keywords, filter it out
+          if (hasNonRemoteKeyword) {
+            return null;
+          }
+
+          // Also filter out if it has a specific city location and is NOT marked as remote
+          if (hasSpecificCityLocation) {
             return null;
           }
         }
