@@ -23,15 +23,15 @@ export const searchJSearchAPI = async (filters) => {
       employmentTypes.push('FULLTIME');
     }
 
-    // Build the request - fetch 3 pages to get more results (up to 30 jobs)
+    // Build the request - fetch multiple pages for more results
     const options = {
       method: 'GET',
       url: 'https://jsearch.p.rapidapi.com/search',
       params: {
         query: query,
         page: '1',
-        num_pages: '3', // Fetch 3 pages for more results
-        date_posted: 'all', // All jobs to get more results
+        num_pages: '10', // Request 10 pages to get more results
+        date_posted: 'all',
         remote_jobs_only: locationType?.includes('remote') ? 'true' : 'false'
       },
       headers: {
@@ -40,36 +40,57 @@ export const searchJSearchAPI = async (filters) => {
       }
     };
 
+    console.log('JSearch API request params:', options.params);
+
     const response = await axios.request(options);
     const jobs = response.data.data || [];
 
-    console.log(`JSearch API returned ${jobs.length} jobs (requested 3 pages)`);
+    console.log(`JSearch API returned ${jobs.length} jobs (requested 10 pages)`);
 
     // Transform JSearch results to our format
-    const transformedJobs = jobs
-      .filter(job => {
-        // Filter by salary if specified
-        if (minSalary && job.job_min_salary && job.job_min_salary < minSalary) {
-          return false;
-        }
-        if (maxSalary && job.job_max_salary && job.job_max_salary > maxSalary) {
-          return false;
-        }
-        return true;
-      })
-      .map(job => {
-        // Format salary
+    const transformedJobs = jobs.map(job => {
+        // Format salary - try multiple fields
         let salary = 'Not specified';
+
+        // Try annual salary first
         if (job.job_min_salary || job.job_max_salary) {
           const min = job.job_min_salary ? `$${Math.round(job.job_min_salary).toLocaleString()}` : '';
           const max = job.job_max_salary ? `$${Math.round(job.job_max_salary).toLocaleString()}` : '';
           if (min && max) {
-            salary = `${min} - ${max}`;
+            salary = `${min} - ${max}/year`;
           } else if (min) {
-            salary = `${min}+`;
+            salary = `${min}+/year`;
           } else if (max) {
-            salary = `Up to ${max}`;
+            salary = `Up to ${max}/year`;
           }
+        }
+        // Try salary period if available (hourly, weekly, etc)
+        else if (job.job_salary_period) {
+          salary = `${job.job_salary_currency || '$'}${job.job_salary_period}`;
+        }
+        // Check if there's a highlighted salary string
+        else if (job.job_highlights?.Qualifications) {
+          const qualifications = job.job_highlights.Qualifications.join(' ');
+          const salaryMatch = qualifications.match(/\$[\d,]+(?:\s*-\s*\$[\d,]+)?(?:\s*(?:per|\/)\s*(?:hour|year|hr|yr))?/i);
+          if (salaryMatch) {
+            salary = salaryMatch[0];
+          }
+        }
+        // Try to extract from description as last resort
+        else if (job.job_description) {
+          const descMatch = job.job_description.match(/(?:salary|pay|compensation)[:\s]+\$[\d,]+(?:\s*-\s*\$[\d,]+)?(?:\s*(?:per|\/)\s*(?:hour|year|hr|yr))?/i);
+          if (descMatch) {
+            salary = descMatch[0].split(/[:\s]+/).slice(1).join(' ');
+          }
+        }
+
+        // Filter by salary if specified (done after extraction)
+        const salaryValue = salary !== 'Not specified' ? parseInt(salary.replace(/[^\d]/g, '')) : 0;
+        if (minSalary && salaryValue > 0 && salaryValue < minSalary) {
+          return null; // Will be filtered out
+        }
+        if (maxSalary && salaryValue > maxSalary) {
+          return null; // Will be filtered out
         }
 
         // Parse posting date
@@ -97,7 +118,9 @@ export const searchJSearchAPI = async (filters) => {
           datePulled: format(new Date(), 'yyyy-MM-dd HH:mm:ss'),
           source: 'JSearch API (Google Jobs/LinkedIn/Indeed)'
         };
-      });
+      }).filter(job => job !== null); // Remove filtered out jobs
+
+    console.log(`Returning ${transformedJobs.length} jobs after filtering`);
 
     return transformedJobs;
 
