@@ -11,15 +11,6 @@ const locationOptions = [
   { value: 'hybrid', label: 'Hybrid' }
 ];
 
-const companySizeOptions = [
-  { value: '1-10', label: '1-10 employees' },
-  { value: '11-50', label: '11-50 employees' },
-  { value: '51-200', label: '51-200 employees' },
-  { value: '201-500', label: '201-500 employees' },
-  { value: '501-1000', label: '501-1000 employees' },
-  { value: '1001+', label: '1001+ employees' }
-];
-
 // Common US cities by state for autocomplete
 const usCities = {
   'oregon': ['Portland', 'Eugene', 'Salem', 'Bend', 'Corvallis'],
@@ -56,7 +47,6 @@ function SearchForm({ onResults, onLoading, onError }) {
   const [locationTypes, setLocationTypes] = useState([]);
   const [location, setLocation] = useState('');
   const [locationSuggestions, setLocationSuggestions] = useState([]);
-  const [companySizes, setCompanySizes] = useState([]);
   const [salaryRange, setSalaryRange] = useState([30000, 200000]);
   const [datePosted, setDatePosted] = useState('all');
 
@@ -103,11 +93,6 @@ function SearchForm({ onResults, onLoading, onError }) {
     }
   };
 
-  // Select all company sizes
-  const selectAllCompanySizes = () => {
-    setCompanySizes(companySizeOptions);
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     onError(null);
@@ -129,7 +114,6 @@ function SearchForm({ onResults, onLoading, onError }) {
         jobTitle: jobTitle.trim(),
         locationType: locationTypes.map(opt => opt.value),
         location: showLocationInput ? location.trim() : undefined,
-        companySizes: companySizes.map(opt => opt.value),
         minSalary: salaryRange[0],
         maxSalary: salaryRange[1],
         datePosted: datePosted
@@ -223,40 +207,6 @@ function SearchForm({ onResults, onLoading, onError }) {
             )}
           </div>
         )}
-      </div>
-
-      <div className="form-group">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <label>Company Size</label>
-          <button
-            type="button"
-            onClick={selectAllCompanySizes}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: '#667eea',
-              cursor: 'pointer',
-              fontSize: '0.875rem',
-              textDecoration: 'underline'
-            }}
-          >
-            Select All
-          </button>
-        </div>
-        <Select
-          isMulti
-          options={companySizeOptions}
-          value={companySizes}
-          onChange={setCompanySizes}
-          placeholder="Select company sizes..."
-          className="select-input"
-        />
-      </div>
-
-      <div className="form-group">
-        <small style={{ color: '#666', marginTop: '4px', display: 'block' }}>
-          Powered by JSearch API - searches Google Jobs, LinkedIn & Indeed
-        </small>
       </div>
 
       <div className="form-group">

@@ -13,7 +13,6 @@ export const searchJobs = async (req, res) => {
       jobTitle,
       locationType, // ['remote', 'onsite', 'hybrid']
       location, // City, State for onsite/hybrid
-      companySizes, // ['1-10', '11-50', '51-200', '201-500', '501-1000', '1001+']
       minSalary,
       maxSalary,
       datePosted
@@ -26,7 +25,6 @@ export const searchJobs = async (req, res) => {
       jobTitle,
       locationType,
       location,
-      companySizes,
       minSalary,
       maxSalary,
       datePosted
