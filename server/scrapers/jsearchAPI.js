@@ -260,7 +260,6 @@ export const searchJSearchAPI = async (filters) => {
           link: job.job_apply_link || job.job_google_link || '#',
           description: job.job_description?.substring(0, 300) || 'No description available',
           salary: salary,
-          companySize: job.employer_company_type || 'Not specified',
           postingDate: postingDate,
           datePulled: format(new Date(), 'yyyy-MM-dd HH:mm:ss'),
           source: source
