@@ -32,19 +32,11 @@ const industryOptions = [
   { value: 'other', label: 'Other' }
 ];
 
-const sourceOptions = [
-  { value: 'linkedin', label: 'LinkedIn' },
-  { value: 'builtin', label: 'BuiltIn' },
-  { value: 'remote', label: 'Remote Job Sites' },
-  { value: 'google', label: 'Google Jobs' }
-];
-
 function SearchForm({ onResults, onLoading, onError }) {
   const [jobTitle, setJobTitle] = useState('');
   const [locationTypes, setLocationTypes] = useState([]);
   const [companySizes, setCompanySizes] = useState([]);
   const [industries, setIndustries] = useState([]);
-  const [sources, setSources] = useState(sourceOptions);
   const [salaryRange, setSalaryRange] = useState([30000, 200000]);
 
   const handleSubmit = async (e) => {
@@ -64,7 +56,6 @@ function SearchForm({ onResults, onLoading, onError }) {
         locationType: locationTypes.map(opt => opt.value),
         companySizes: companySizes.map(opt => opt.value),
         industries: industries.map(opt => opt.value),
-        sources: sources.map(opt => opt.value),
         minSalary: salaryRange[0],
         maxSalary: salaryRange[1]
       };
@@ -122,30 +113,19 @@ function SearchForm({ onResults, onLoading, onError }) {
         </div>
       </div>
 
-      <div className="form-row">
-        <div className="form-group">
-          <label>Industry</label>
-          <Select
-            isMulti
-            options={industryOptions}
-            value={industries}
-            onChange={setIndustries}
-            placeholder="Select industries..."
-            className="select-input"
-          />
-        </div>
-
-        <div className="form-group">
-          <label>Job Sources</label>
-          <Select
-            isMulti
-            options={sourceOptions}
-            value={sources}
-            onChange={setSources}
-            placeholder="Select sources..."
-            className="select-input"
-          />
-        </div>
+      <div className="form-group">
+        <label>Industry</label>
+        <Select
+          isMulti
+          options={industryOptions}
+          value={industries}
+          onChange={setIndustries}
+          placeholder="Select industries..."
+          className="select-input"
+        />
+        <small style={{ color: '#666', marginTop: '4px', display: 'block' }}>
+          Powered by JSearch API - searches Google Jobs, LinkedIn & Indeed
+        </small>
       </div>
 
       <div className="form-group">
