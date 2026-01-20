@@ -12,6 +12,7 @@ export const scrapeRemoteJobs = async (filters) => {
   await scrapeRemoteOk(jobTitle, allJobs);
   await scrapeWeWorkRemotely(jobTitle, allJobs);
   await scrapeRemoteCo(jobTitle, allJobs);
+  await scrapeStartupJobs(jobTitle, allJobs);
 
   console.log(`Found ${allJobs.length} jobs from Remote Job Sites`);
   return allJobs;
@@ -138,5 +139,92 @@ const scrapeRemoteCo = async (jobTitle, allJobs) => {
     });
   } catch (error) {
     console.error('Remote.co scraper error:', error.message);
+  }
+};
+
+const scrapeStartupJobs = async (jobTitle, allJobs) => {
+  try {
+    const searchQuery = encodeURIComponent(jobTitle || 'developer');
+    const url = `https://startup.jobs/api/jobs?search=${searchQuery}`;
+
+    console.log('Scraping Startup.jobs...');
+
+    const response = await axios.get(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Accept': 'application/json'
+      },
+      timeout: 15000
+    });
+
+    const jobs = response.data?.jobs || response.data || [];
+
+    jobs.forEach(job => {
+      if (job && job.title && job.company) {
+        allJobs.push({
+          title: job.title,
+          company: job.company?.name || job.company || 'Unknown',
+          location: job.location || job.remote ? 'Remote' : 'Not specified',
+          link: job.url || job.apply_url || `https://startup.jobs/jobs/${job.id || ''}`,
+          description: job.description?.substring(0, 300) || job.summary || '',
+          salary: job.salary || job.compensation || 'Not specified',
+          source: 'Startup.jobs',
+          datePulled: format(new Date(), 'yyyy-MM-dd HH:mm:ss'),
+          postingDate: job.posted_at || job.created_at || format(new Date(), 'yyyy-MM-dd'),
+          companySize: job.company?.size || 'Not specified',
+          industry: job.category || job.industry || 'Startup'
+        });
+      }
+    });
+
+    console.log(`Startup.jobs returned ${jobs.length} jobs`);
+  } catch (error) {
+    // If API doesn't work, try scraping the HTML
+    if (error.response?.status === 404 || !error.response) {
+      try {
+        const searchQuery = encodeURIComponent(jobTitle || 'developer');
+        const url = `https://startup.jobs/jobs?search=${searchQuery}`;
+
+        const response = await axios.get(url, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+          },
+          timeout: 15000
+        });
+
+        const $ = cheerio.load(response.data);
+
+        $('.job, .job-listing, [class*="job"]').each((i, element) => {
+          const $el = $(element);
+
+          const title = $el.find('h2, h3, .job-title, [class*="title"]').first().text().trim();
+          const company = $el.find('.company, [class*="company"]').first().text().trim();
+          const link = $el.find('a').first().attr('href');
+          const location = $el.find('.location, [class*="location"]').first().text().trim();
+          const salary = $el.find('.salary, [class*="salary"], [class*="compensation"]').first().text().trim();
+
+          if (title && company) {
+            allJobs.push({
+              title,
+              company,
+              location: location || 'Not specified',
+              link: link?.startsWith('http') ? link : `https://startup.jobs${link}`,
+              description: '',
+              salary: salary || 'Not specified',
+              source: 'Startup.jobs',
+              datePulled: format(new Date(), 'yyyy-MM-dd HH:mm:ss'),
+              companySize: 'Not specified',
+              industry: 'Startup'
+            });
+          }
+        });
+
+        console.log(`Startup.jobs HTML scraping found ${allJobs.length} jobs`);
+      } catch (htmlError) {
+        console.error('Startup.jobs HTML scraper error:', htmlError.message);
+      }
+    } else {
+      console.error('Startup.jobs scraper error:', error.message);
+    }
   }
 };

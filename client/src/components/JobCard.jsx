@@ -9,7 +9,9 @@ function JobCard({ job }) {
       'RemoteOK': '#28a745',
       'WeWorkRemotely': '#7c3aed',
       'Remote.co': '#f59e0b',
-      'Google Jobs': '#4285f4'
+      'Google Jobs': '#4285f4',
+      'Startup.jobs': '#ec4899',
+      'JSearch API (Google Jobs/LinkedIn/Indeed)': '#667eea'
     };
     return colors[source] || '#667eea';
   };
