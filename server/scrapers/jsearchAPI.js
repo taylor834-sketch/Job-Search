@@ -149,6 +149,28 @@ export const searchJSearchAPI = async (filters) => {
           }
         }
 
+        // Determine the actual source site
+        let source = 'Job Board';
+        if (job.job_publisher) {
+          source = job.job_publisher;
+        } else if (job.job_google_link) {
+          source = 'Google Jobs';
+        } else if (job.job_apply_link) {
+          // Try to extract domain from apply link
+          try {
+            const url = new URL(job.job_apply_link);
+            const domain = url.hostname.replace('www.', '');
+            if (domain.includes('linkedin')) source = 'LinkedIn';
+            else if (domain.includes('indeed')) source = 'Indeed';
+            else if (domain.includes('glassdoor')) source = 'Glassdoor';
+            else if (domain.includes('ziprecruiter')) source = 'ZipRecruiter';
+            else if (domain.includes('monster')) source = 'Monster';
+            else source = domain.split('.')[0].charAt(0).toUpperCase() + domain.split('.')[0].slice(1);
+          } catch (e) {
+            source = 'Job Board';
+          }
+        }
+
         return {
           title: job.job_title || 'No title',
           company: job.employer_name || 'Unknown',
@@ -162,7 +184,7 @@ export const searchJSearchAPI = async (filters) => {
           industry: job.job_employment_type || 'Not specified',
           postingDate: postingDate,
           datePulled: format(new Date(), 'yyyy-MM-dd HH:mm:ss'),
-          source: 'JSearch API (Google Jobs/LinkedIn/Indeed)'
+          source: source
         };
       }).filter(job => job !== null); // Remove filtered out jobs
 

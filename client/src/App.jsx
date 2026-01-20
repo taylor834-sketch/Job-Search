@@ -27,7 +27,7 @@ function App() {
     <div className="app">
       <header className="app-header">
         <h1>🤖 Jobinator 3000</h1>
-        <p>Your AI-Powered Job Search Companion</p>
+        <p>Your Job Search Companion</p>
       </header>
 
       <div className="app-content">
