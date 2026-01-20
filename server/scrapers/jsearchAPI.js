@@ -1,5 +1,34 @@
 import axios from 'axios';
+import * as cheerio from 'cheerio';
 import { format } from 'date-fns';
+
+// Helper function to extract salary from text
+const extractSalaryFromText = (text) => {
+  if (!text) return null;
+
+  // Comprehensive salary patterns
+  const patterns = [
+    // Range patterns: $100,000 - $150,000, $100k - $150k
+    /\$\s*(\d{1,3}(?:,\d{3})*|\d+k)\s*(?:-|to)\s*\$?\s*(\d{1,3}(?:,\d{3})*|\d+k)\s*(?:per\s)?(?:year|yr|annually|\/year|\/yr|a year)?/gi,
+    // Single amount: $100,000, $100k
+    /\$\s*(\d{1,3}(?:,\d{3})*|\d+k)\s*(?:\+)?\s*(?:per\s)?(?:year|yr|annually|\/year|\/yr|a year)?/gi,
+    // Hourly: $50/hr, $50 per hour
+    /\$\s*(\d{1,3}(?:,\d{3})*|\d+)\s*(?:-|to)\s*\$?\s*(\d{1,3}(?:,\d{3})*|\d+)?\s*(?:per\s)?(?:hour|hr|\/hr|\/hour)/gi,
+    // Compensation/Salary prefix
+    /(?:salary|compensation|pay|base pay|annual salary)[\s:]+\$\s*(\d{1,3}(?:,\d{3})*|\d+k)\s*(?:-|to)?\s*\$?\s*(\d{1,3}(?:,\d{3})*|\d+k)?/gi,
+    // K format: 100k - 150k
+    /(\d{2,3})k\s*(?:-|to)\s*(\d{2,3})k/gi
+  ];
+
+  for (const pattern of patterns) {
+    const match = text.match(pattern);
+    if (match && match[0]) {
+      return match[0].trim();
+    }
+  }
+
+  return null;
+};
 
 export const searchJSearchAPI = async (filters) => {
   const { jobTitle, locationType, location, minSalary, maxSalary } = filters;
@@ -46,38 +75,58 @@ export const searchJSearchAPI = async (filters) => {
 
     // Transform JSearch results to our format
     const transformedJobs = jobs.map(job => {
-        // Format salary - try multiple fields
+        // Format salary - try multiple fields aggressively
         let salary = 'Not specified';
 
-        // Try annual salary first
+        // 1. Try API salary fields first
         if (job.job_min_salary || job.job_max_salary) {
           const min = job.job_min_salary ? `$${Math.round(job.job_min_salary).toLocaleString()}` : '';
           const max = job.job_max_salary ? `$${Math.round(job.job_max_salary).toLocaleString()}` : '';
           if (min && max) {
-            salary = `${min} - ${max}/year`;
+            salary = `${min} - ${max}`;
           } else if (min) {
-            salary = `${min}+/year`;
+            salary = `${min}+`;
           } else if (max) {
-            salary = `Up to ${max}/year`;
+            salary = `Up to ${max}`;
           }
         }
-        // Try salary period if available (hourly, weekly, etc)
-        else if (job.job_salary_period) {
-          salary = `${job.job_salary_currency || '$'}${job.job_salary_period}`;
-        }
-        // Check if there's a highlighted salary string
-        else if (job.job_highlights?.Qualifications) {
-          const qualifications = job.job_highlights.Qualifications.join(' ');
-          const salaryMatch = qualifications.match(/\$[\d,]+(?:\s*-\s*\$[\d,]+)?(?:\s*(?:per|\/)\s*(?:hour|year|hr|yr))?/i);
-          if (salaryMatch) {
-            salary = salaryMatch[0];
+
+        // 2. If still not found, try job highlights (all sections)
+        if (salary === 'Not specified' && job.job_highlights) {
+          const allHighlights = [
+            ...(job.job_highlights.Qualifications || []),
+            ...(job.job_highlights.Responsibilities || []),
+            ...(job.job_highlights.Benefits || [])
+          ].join(' ');
+
+          const extracted = extractSalaryFromText(allHighlights);
+          if (extracted) {
+            salary = extracted;
           }
         }
-        // Try to extract from description as last resort
-        else if (job.job_description) {
-          const descMatch = job.job_description.match(/(?:salary|pay|compensation)[:\s]+\$[\d,]+(?:\s*-\s*\$[\d,]+)?(?:\s*(?:per|\/)\s*(?:hour|year|hr|yr))?/i);
-          if (descMatch) {
-            salary = descMatch[0].split(/[:\s]+/).slice(1).join(' ');
+
+        // 3. Try full job description
+        if (salary === 'Not specified' && job.job_description) {
+          const extracted = extractSalaryFromText(job.job_description);
+          if (extracted) {
+            salary = extracted;
+          }
+        }
+
+        // 4. Try job title (sometimes salary is in the title)
+        if (salary === 'Not specified' && job.job_title) {
+          const extracted = extractSalaryFromText(job.job_title);
+          if (extracted) {
+            salary = extracted;
+          }
+        }
+
+        // 5. Check job_required_experience or job_required_skills for salary mentions
+        if (salary === 'Not specified') {
+          const experienceText = job.job_required_experience?.join(' ') || '';
+          const extracted = extractSalaryFromText(experienceText);
+          if (extracted) {
+            salary = extracted;
           }
         }
 
@@ -117,7 +166,8 @@ export const searchJSearchAPI = async (filters) => {
         };
       }).filter(job => job !== null); // Remove filtered out jobs
 
-    console.log(`Returning ${transformedJobs.length} jobs after filtering`);
+    const jobsWithSalary = transformedJobs.filter(job => job.salary !== 'Not specified').length;
+    console.log(`Returning ${transformedJobs.length} jobs after filtering (${jobsWithSalary} with salary info)`);
 
     return transformedJobs;
 
