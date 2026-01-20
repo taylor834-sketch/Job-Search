@@ -67,17 +67,32 @@ export const searchJobs = async (req, res) => {
     const results = await Promise.allSettled(jobPromises);
 
     let allJobs = [];
-    results.forEach((result, index) => {
+    const scraperNames = ['BuiltIn', 'Remote Jobs', 'Google Jobs'];
+    let scraperIndex = 0;
+
+    results.forEach((result) => {
+      const scraperName = scraperNames[scraperIndex] || `Scraper ${scraperIndex}`;
       if (result.status === 'fulfilled') {
+        console.log(`${scraperName}: Found ${result.value.length} jobs`);
         allJobs = allJobs.concat(result.value);
       } else {
-        console.error(`Scraper ${index} failed:`, result.reason);
+        console.error(`${scraperName} failed:`, result.reason.message || result.reason);
       }
+      scraperIndex++;
     });
 
     const uniqueJobs = deduplicateJobs(allJobs);
 
-    console.log(`Found ${uniqueJobs.length} unique jobs`);
+    console.log(`Found ${uniqueJobs.length} unique jobs from ${allJobs.length} total results`);
+
+    if (uniqueJobs.length === 0 && jobPromises.length > 0) {
+      return res.json({
+        success: true,
+        count: 0,
+        jobs: [],
+        message: 'No jobs found. Try different search criteria or check the logs for scraper errors.'
+      });
+    }
 
     res.json({
       success: true,
