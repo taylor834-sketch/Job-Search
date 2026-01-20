@@ -3,6 +3,7 @@ import { getAllSavedSearches, updateLastRun, filterJobsByPostingDate, filterNewJ
 import { scrapeBuiltIn } from '../scrapers/builtinScraper.js';
 import { scrapeRemoteJobs } from '../scrapers/remoteJobsScraper.js';
 import { scrapeGoogleJobs } from '../scrapers/googleJobsScraper.js';
+import { searchJSearchAPI } from '../scrapers/jsearchAPI.js';
 import { deduplicateJobs } from './deduplication.js';
 import { sendJobAlertEmail } from './emailService.js';
 
@@ -13,7 +14,9 @@ const runScheduledSearch = async (search) => {
     const { searchCriteria } = search;
     const jobPromises = [];
 
-    // Run scrapers based on sources (LinkedIn removed - Puppeteer too heavy)
+    // Run scrapers based on sources
+    // JSearch API as primary source
+    jobPromises.push(searchJSearchAPI(searchCriteria));
 
     if (!searchCriteria.sources || searchCriteria.sources.includes('builtin')) {
       jobPromises.push(scrapeBuiltIn(searchCriteria));

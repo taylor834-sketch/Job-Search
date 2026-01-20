@@ -1,6 +1,7 @@
 import { scrapeBuiltIn } from '../scrapers/builtinScraper.js';
 import { scrapeRemoteJobs } from '../scrapers/remoteJobsScraper.js';
 import { scrapeGoogleJobs } from '../scrapers/googleJobsScraper.js';
+import { searchJSearchAPI } from '../scrapers/jsearchAPI.js';
 import { deduplicateJobs } from '../utils/deduplication.js';
 import { generateExcelFile } from '../utils/excelExport.js';
 import { sendJobAlertEmail } from '../utils/emailService.js';
@@ -22,9 +23,19 @@ export const searchJobs = async (req, res) => {
 
     const jobPromises = [];
 
-    // LinkedIn scraper removed to reduce build size (Puppeteer dependency too large)
-    // Keeping 4 other sources: BuiltIn, Remote Jobs, Google Jobs
+    // JSearch API - searches Google Jobs, LinkedIn, Indeed (primary source)
+    jobPromises.push(
+      searchJSearchAPI({
+        jobTitle,
+        locationType,
+        companySizes,
+        industries,
+        minSalary,
+        maxSalary
+      })
+    );
 
+    // Backup scrapers (may not work due to blocking)
     if (!sources || sources.includes('builtin')) {
       jobPromises.push(
         scrapeBuiltIn({
@@ -67,7 +78,7 @@ export const searchJobs = async (req, res) => {
     const results = await Promise.allSettled(jobPromises);
 
     let allJobs = [];
-    const scraperNames = ['BuiltIn', 'Remote Jobs', 'Google Jobs'];
+    const scraperNames = ['JSearch API', 'BuiltIn', 'Remote Jobs', 'Google Jobs'];
     let scraperIndex = 0;
 
     results.forEach((result) => {
