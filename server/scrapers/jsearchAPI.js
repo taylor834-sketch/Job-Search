@@ -23,15 +23,15 @@ export const searchJSearchAPI = async (filters) => {
       employmentTypes.push('FULLTIME');
     }
 
-    // Build the request
+    // Build the request - fetch 3 pages to get more results (up to 30 jobs)
     const options = {
       method: 'GET',
       url: 'https://jsearch.p.rapidapi.com/search',
       params: {
         query: query,
         page: '1',
-        num_pages: '1',
-        date_posted: 'week', // Jobs from last 7 days
+        num_pages: '3', // Fetch 3 pages for more results
+        date_posted: 'all', // All jobs to get more results
         remote_jobs_only: locationType?.includes('remote') ? 'true' : 'false'
       },
       headers: {
@@ -43,7 +43,7 @@ export const searchJSearchAPI = async (filters) => {
     const response = await axios.request(options);
     const jobs = response.data.data || [];
 
-    console.log(`JSearch API returned ${jobs.length} jobs`);
+    console.log(`JSearch API returned ${jobs.length} jobs (requested 3 pages)`);
 
     // Transform JSearch results to our format
     const transformedJobs = jobs
