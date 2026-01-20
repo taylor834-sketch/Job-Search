@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
 # Render build script
+set -e
 
 echo "Installing root dependencies..."
 npm install
 
 echo "Installing client dependencies..."
 cd client
-npm install
+npm install --include=dev
 
 echo "Building client..."
-npx vite build
+./node_modules/.bin/vite build
 
 echo "Build complete!"
