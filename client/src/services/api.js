@@ -82,3 +82,16 @@ export const toggleRecurringSearch = async (searchId, isActive) => {
     throw new Error('Failed to toggle recurring search');
   }
 };
+
+export const updateRecurringSearch = async (searchId, updateData) => {
+  try {
+    const response = await axios.patch(`${API_BASE_URL}/jobs/recurring/${searchId}`, updateData);
+    return response.data;
+  } catch (error) {
+    console.error('Update Recurring Search Error:', error);
+    throw new Error(
+      error.response?.data?.error ||
+      'Failed to update recurring search'
+    );
+  }
+};

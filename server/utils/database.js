@@ -1,10 +1,16 @@
 import { JsonDB, Config } from 'node-json-db';
 import { v4 as uuidv4 } from 'uuid';
 import { format, subDays } from 'date-fns';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-// Initialize databases
-const savedSearchesDB = new JsonDB(new Config('data/savedSearches', true, false, '/'));
-const seenJobsDB = new JsonDB(new Config('data/seenJobs', true, false, '/'));
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Use absolute path so it works regardless of CWD
+const dataDir = path.resolve(__dirname, '..', 'data');
+const savedSearchesDB = new JsonDB(new Config(path.join(dataDir, 'savedSearches'), true, false, '/'));
+const seenJobsDB = new JsonDB(new Config(path.join(dataDir, 'seenJobs'), true, false, '/'));
 
 // Saved Searches Management
 export const saveSavedSearch = async (searchData) => {
@@ -74,6 +80,38 @@ export const toggleSearchActive = async (searchId, isActive) => {
   } catch (error) {
     console.error('Error toggling search:', error);
     return false;
+  }
+};
+
+export const updateSavedSearch = async (searchId, updates) => {
+  try {
+    // Verify the search exists first
+    const existing = await savedSearchesDB.getData(`/searches/${searchId}`);
+    if (!existing) return null;
+
+    // Apply only the allowed fields
+    if (updates.searchCriteria) {
+      await savedSearchesDB.push(`/searches/${searchId}/searchCriteria`, updates.searchCriteria);
+    }
+    if (updates.frequency) {
+      await savedSearchesDB.push(`/searches/${searchId}/frequency`, updates.frequency);
+      // If switching to daily, clear dayOfWeek
+      if (updates.frequency === 'daily') {
+        await savedSearchesDB.push(`/searches/${searchId}/dayOfWeek`, null);
+      }
+    }
+    if (updates.dayOfWeek !== undefined) {
+      await savedSearchesDB.push(`/searches/${searchId}/dayOfWeek`, updates.dayOfWeek);
+    }
+    if (updates.userEmail !== undefined) {
+      await savedSearchesDB.push(`/searches/${searchId}/userEmail`, updates.userEmail || null);
+    }
+
+    // Return the updated record
+    return await savedSearchesDB.getData(`/searches/${searchId}`);
+  } catch (error) {
+    console.error('Error updating search:', error);
+    throw error;
   }
 };
 

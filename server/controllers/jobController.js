@@ -1,7 +1,7 @@
 import { searchJSearchAPI } from '../scrapers/jsearchAPI.js';
 import { generateExcelFile } from '../utils/excelExport.js';
 import { sendJobAlertEmail } from '../utils/emailService.js';
-import { saveSavedSearch, getAllSavedSearches, deleteSavedSearch, toggleSearchActive } from '../utils/database.js';
+import { saveSavedSearch, getAllSavedSearches, deleteSavedSearch, toggleSearchActive, updateSavedSearch } from '../utils/database.js';
 
 export const searchJobs = async (req, res) => {
   try {
@@ -182,6 +182,47 @@ export const toggleRecurringSearch = async (req, res) => {
 
   } catch (error) {
     console.error('Error toggling recurring search:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+};
+
+export const updateRecurringSearch = async (req, res) => {
+  try {
+    const { searchId } = req.params;
+    const { searchCriteria, frequency, dayOfWeek, userEmail } = req.body;
+
+    if (frequency === 'weekly' && !dayOfWeek) {
+      return res.status(400).json({
+        success: false,
+        error: 'Day of week is required for weekly searches'
+      });
+    }
+
+    const updated = await updateSavedSearch(searchId, {
+      searchCriteria,
+      frequency,
+      dayOfWeek: frequency === 'weekly' ? dayOfWeek : null,
+      userEmail
+    });
+
+    if (!updated) {
+      return res.status(404).json({
+        success: false,
+        error: 'Search not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Recurring search updated successfully',
+      search: updated
+    });
+
+  } catch (error) {
+    console.error('Error updating recurring search:', error);
     res.status(500).json({
       success: false,
       error: error.message

@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import jobRoutes from './routes/jobRoutes.js';
 import { initializeSchedulers } from './utils/scheduler.js';
@@ -10,6 +11,13 @@ dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Ensure the data directory exists so node-json-db can write its files
+const dataDir = path.join(__dirname, 'data');
+if (!fs.existsSync(dataDir)) {
+  fs.mkdirSync(dataDir, { recursive: true });
+  console.log('Created data/ directory');
+}
 
 const app = express();
 const PORT = process.env.PORT || 3001;

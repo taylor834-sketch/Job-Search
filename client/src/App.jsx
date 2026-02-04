@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import SearchForm from './components/SearchForm';
 import JobResults from './components/JobResults';
 import JobActions from './components/JobActions';
@@ -13,6 +13,13 @@ function App() {
   const [debugInfo, setDebugInfo] = useState(null);
   const [showDebug, setShowDebug] = useState(false);
   const [selectedJobs, setSelectedJobs] = useState(new Set());
+
+  // Ref so JobActions can trigger a refresh on the RecurringSearches panel
+  // after a new recurring search is created
+  const refreshRecurringRef = useRef(null);
+  const handleSearchCreated = useCallback(() => {
+    if (refreshRecurringRef.current) refreshRecurringRef.current();
+  }, []);
 
   // Format the build-time git commit timestamp for the footer.
   // __BUILD_TIME__ is injected by vite.config.js define plugin at build time.
@@ -76,7 +83,7 @@ function App() {
           </div>
         )}
 
-        <RecurringSearches />
+        <RecurringSearches onRegisterRefresh={(fn) => { refreshRecurringRef.current = fn; }} />
 
         {!loading && jobs.length === 0 && debugInfo && (
           <div className="debug-panel">
@@ -185,7 +192,7 @@ function App() {
 
         {!loading && jobs.length > 0 && (
           <>
-            <JobActions jobs={jobs} searchCriteria={searchCriteria} selectedJobs={selectedJobs} />
+            <JobActions jobs={jobs} searchCriteria={searchCriteria} selectedJobs={selectedJobs} onSearchCreated={handleSearchCreated} />
             <JobResults jobs={jobs} selectedJobs={selectedJobs} onToggleSelect={handleToggleSelect} onSelectAll={handleSelectAll} />
           </>
         )}

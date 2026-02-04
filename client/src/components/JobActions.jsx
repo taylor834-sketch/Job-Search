@@ -13,7 +13,7 @@ const dayOptions = [
   { value: 'sunday', label: 'Sunday' }
 ];
 
-function JobActions({ jobs, searchCriteria, selectedJobs }) {
+function JobActions({ jobs, searchCriteria, selectedJobs, onSearchCreated }) {
   const [showRecurringModal, setShowRecurringModal] = useState(false);
   const [frequency, setFrequency] = useState('daily');
   const [dayOfWeek, setDayOfWeek] = useState(null);
@@ -58,6 +58,7 @@ function JobActions({ jobs, searchCriteria, selectedJobs }) {
 
       setMessage({ type: 'success', text: 'Recurring search created! You will receive email alerts.' });
       setShowRecurringModal(false);
+      if (onSearchCreated) onSearchCreated();
 
       setTimeout(() => {
         setMessage(null);

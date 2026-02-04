@@ -168,6 +168,28 @@
   color: #c0392b;
 }
 
+/* Edit button — same shape as delete, blue hover */
+.recurring-edit {
+  background: none;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.82rem;
+  color: #999;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.recurring-edit:hover {
+  background: #eef3ff;
+  border-color: #b3c6f5;
+  color: #667eea;
+}
+
 /* Meta row: frequency, email, dates */
 .recurring-item-meta {
   display: flex;

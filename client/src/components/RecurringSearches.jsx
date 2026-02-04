@@ -1,14 +1,33 @@
-import { useState, useEffect } from 'react';
-import { getRecurringSearches, deleteRecurringSearch, toggleRecurringSearch } from '../services/api';
+import { useState, useEffect, useCallback } from 'react';
+import Select from 'react-select';
+import { getRecurringSearches, deleteRecurringSearch, toggleRecurringSearch, updateRecurringSearch } from '../services/api';
 import './RecurringSearches.css';
 
-function RecurringSearches() {
+const dayOptions = [
+  { value: 'monday', label: 'Monday' },
+  { value: 'tuesday', label: 'Tuesday' },
+  { value: 'wednesday', label: 'Wednesday' },
+  { value: 'thursday', label: 'Thursday' },
+  { value: 'friday', label: 'Friday' },
+  { value: 'saturday', label: 'Saturday' },
+  { value: 'sunday', label: 'Sunday' }
+];
+
+function RecurringSearches({ onRegisterRefresh }) {
   const [searches, setSearches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showPanel, setShowPanel] = useState(false);
   const [error, setError] = useState(null);
 
-  const fetchSearches = async () => {
+  // Edit modal state
+  const [editingSearch, setEditingSearch] = useState(null); // the full search object being edited
+  const [editTitle, setEditTitle] = useState('');
+  const [editFrequency, setEditFrequency] = useState('daily');
+  const [editDayOfWeek, setEditDayOfWeek] = useState(null);
+  const [editEmail, setEditEmail] = useState('');
+  const [editSaving, setEditSaving] = useState(false);
+
+  const fetchSearches = useCallback(async () => {
     try {
       setLoading(true);
       const data = await getRecurringSearches();
@@ -19,17 +38,21 @@ function RecurringSearches() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  // Register our fetch function with the parent so it can trigger a refresh
+  useEffect(() => {
+    if (onRegisterRefresh) onRegisterRefresh(fetchSearches);
+  }, [onRegisterRefresh, fetchSearches]);
 
   // Fetch whenever the panel opens
   useEffect(() => {
     if (showPanel) fetchSearches();
-  }, [showPanel]);
+  }, [showPanel, fetchSearches]);
 
   const handleToggle = async (search) => {
     try {
       await toggleRecurringSearch(search.id, !search.isActive);
-      // Optimistic update
       setSearches(prev =>
         prev.map(s => s.id === search.id ? { ...s, isActive: !s.isActive } : s)
       );
@@ -46,6 +69,69 @@ function RecurringSearches() {
       setError('Failed to delete search');
     }
   };
+
+  // ── Edit modal helpers ──────────────────────────────────────────────────
+  const openEdit = (search) => {
+    setEditingSearch(search);
+    setEditTitle(search.searchCriteria?.jobTitle || '');
+    setEditFrequency(search.frequency || 'daily');
+    setEditDayOfWeek(
+      search.dayOfWeek
+        ? dayOptions.find(d => d.value === search.dayOfWeek) || null
+        : null
+    );
+    setEditEmail(search.userEmail || '');
+  };
+
+  const closeEdit = () => {
+    setEditingSearch(null);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingSearch) return;
+    if (editFrequency === 'weekly' && !editDayOfWeek) {
+      setError('Please select a day of the week for weekly searches');
+      return;
+    }
+
+    setEditSaving(true);
+    try {
+      const updatedCriteria = {
+        ...editingSearch.searchCriteria,
+        jobTitle: editTitle
+      };
+
+      await updateRecurringSearch(editingSearch.id, {
+        searchCriteria: updatedCriteria,
+        frequency: editFrequency,
+        dayOfWeek: editFrequency === 'weekly' ? editDayOfWeek.value : null,
+        userEmail: editEmail || null
+      });
+
+      // Optimistic local update
+      setSearches(prev =>
+        prev.map(s =>
+          s.id === editingSearch.id
+            ? {
+                ...s,
+                searchCriteria: updatedCriteria,
+                frequency: editFrequency,
+                dayOfWeek: editFrequency === 'weekly' ? editDayOfWeek.value : null,
+                userEmail: editEmail || null
+              }
+            : s
+        )
+      );
+
+      closeEdit();
+      setError(null);
+    } catch (e) {
+      setError('Failed to save changes');
+    } finally {
+      setEditSaving(false);
+    }
+  };
+  // ── end edit helpers ────────────────────────────────────────────────────
 
   const formatDate = (iso) => {
     if (!iso) return 'Never';
@@ -115,6 +201,13 @@ function RecurringSearches() {
                         {search.isActive ? 'Active' : 'Paused'}
                       </button>
                       <button
+                        className="recurring-edit"
+                        onClick={() => openEdit(search)}
+                        title="Edit this scheduled search"
+                      >
+                        ✎
+                      </button>
+                      <button
                         className="recurring-delete"
                         onClick={() => handleDelete(search.id)}
                         title="Delete this scheduled search"
@@ -126,7 +219,7 @@ function RecurringSearches() {
 
                   <div className="recurring-item-meta">
                     <span className="recurring-meta-item">
-                      <strong>Frequency:</strong> {search.frequency === 'weekly' ? 'Weekly (' + search.dayOfWeek + ')' : 'Daily'}
+                      <strong>Frequency:</strong> {search.frequency === 'weekly' ? 'Weekly (' + (search.dayOfWeek || '—') + ')' : 'Daily'}
                     </span>
                     <span className="recurring-meta-item">
                       <strong>Email:</strong> {search.userEmail || 'Taylor@realsimplerevops.com'}
@@ -142,6 +235,96 @@ function RecurringSearches() {
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {/* ── Edit modal ──────────────────────────────────────────────── */}
+      {editingSearch && (
+        <div className="modal-overlay" onClick={closeEdit}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h2>Edit Scheduled Search</h2>
+            <p className="modal-description">
+              Update the search criteria or schedule for this recurring alert.
+            </p>
+
+            <div className="modal-form">
+              {/* Job Title */}
+              <div className="form-group">
+                <label>Job Title</label>
+                <input
+                  type="text"
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  placeholder="e.g., Software Engineer"
+                  className="text-input"
+                />
+              </div>
+
+              {/* Frequency */}
+              <div className="form-group">
+                <label>Frequency</label>
+                <div className="radio-group">
+                  <label className="radio-label">
+                    <input
+                      type="radio"
+                      value="daily"
+                      checked={editFrequency === 'daily'}
+                      onChange={(e) => setEditFrequency(e.target.value)}
+                    />
+                    <span>Daily (jobs posted today)</span>
+                  </label>
+                  <label className="radio-label">
+                    <input
+                      type="radio"
+                      value="weekly"
+                      checked={editFrequency === 'weekly'}
+                      onChange={(e) => setEditFrequency(e.target.value)}
+                    />
+                    <span>Weekly (jobs from last 7 days)</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Day picker — only when weekly */}
+              {editFrequency === 'weekly' && (
+                <div className="form-group">
+                  <label>Day of Week</label>
+                  <Select
+                    options={dayOptions}
+                    value={editDayOfWeek}
+                    onChange={setEditDayOfWeek}
+                    placeholder="Select day..."
+                  />
+                </div>
+              )}
+
+              {/* Email */}
+              <div className="form-group">
+                <label>Your Email (Optional)</label>
+                <input
+                  type="email"
+                  value={editEmail}
+                  onChange={(e) => setEditEmail(e.target.value)}
+                  placeholder="your@email.com"
+                  className="text-input"
+                />
+                <small>Leave blank to only notify Taylor@realsimplerevops.com</small>
+              </div>
+
+              <div className="modal-actions">
+                <button onClick={closeEdit} className="btn-secondary">
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveEdit}
+                  disabled={editSaving}
+                  className="btn-primary"
+                >
+                  {editSaving ? 'Saving…' : 'Save Changes'}
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
