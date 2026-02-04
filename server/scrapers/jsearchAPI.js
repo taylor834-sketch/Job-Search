@@ -47,6 +47,42 @@ const extractSalaryFromText = (text) => {
   return null;
 };
 
+// Normalize any extracted salary string into a clean annual range.
+// Handles: $75k, $50/hr, 80k-100k, $85,000 - $110,000, Salary: $90k, $80,000+, etc.
+// Output: "$X - $Y/yr" | "$X+/yr" | "$X/yr" | null
+const normalizeSalary = (raw) => {
+  if (!raw || raw === 'Not specified') return null;
+
+  const text = raw.replace(/[\u2013\u2014]/g, '-').trim();
+  const isHourly = /(?:per\s+)?(?:hour|hr)\b/i.test(text);
+
+  // Extract all numeric amounts (optional $ prefix, optional k suffix)
+  const amounts = [];
+  const re = /\$?\s*(\d{1,3}(?:,\d{3})*(?:\.\d+)?)\s*k?/gi;
+  let m;
+  while ((m = re.exec(text)) !== null) {
+    const numStr = m[1].replace(/,/g, '');
+    let val = parseFloat(numStr);
+    if (/k\s*$/i.test(m[0])) val *= 1000;
+    if (val < 10 && !isHourly) continue; // skip noise like "2" from "2 years"
+    amounts.push(val);
+  }
+
+  if (amounts.length === 0) return null;
+  const unique = [...new Set(amounts)];
+
+  let min = Math.min(...unique);
+  let max = Math.max(...unique);
+
+  if (isHourly) { min = Math.round(min * 2080); max = Math.round(max * 2080); }
+
+  const fmt = (n) => '$' + Math.round(n).toLocaleString();
+  const hasPlus = /\+/.test(text);
+
+  if (min === max) return hasPlus ? `${fmt(min)}+/yr` : `${fmt(min)}/yr`;
+  return `${fmt(min)} - ${fmt(max)}/yr`;
+};
+
 // Scrape salary from an actual job posting page
 const scrapeSalaryFromPage = async (url) => {
   try {
@@ -376,7 +412,7 @@ export const searchJSearchAPI = async (filters) => {
             : job.job_country || 'Remote',
           link: job.job_apply_link || job.job_google_link || '#',
           description: job.job_description?.substring(0, 300) || 'No description available',
-          salary: salary,
+          salary: normalizeSalary(salary) || 'Not specified',
           employmentType: employmentType,
           companyType: companyType,
           postingDate: postingDate,
@@ -423,7 +459,7 @@ export const searchJSearchAPI = async (filters) => {
         if (salary) {
           const idx = filteredJobs.findIndex(j => j.link === toScrape[i].link);
           if (idx !== -1) {
-            filteredJobs[idx].salary = salary;
+            filteredJobs[idx].salary = normalizeSalary(salary) || salary;
             scrapedCount++;
           }
         }
