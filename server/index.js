@@ -7,10 +7,17 @@ import { fileURLToPath } from 'url';
 import jobRoutes from './routes/jobRoutes.js';
 import { initializeSchedulers } from './utils/scheduler.js';
 
-dotenv.config();
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Load .env from the project root (one level up from server/) regardless of CWD
+dotenv.config({ path: path.resolve(__dirname, '..', '.env') });
+
+// Warn at startup if critical env vars are missing so problems are obvious immediately
+if (!process.env.JSEARCH_API_KEY) {
+  console.warn('⚠️  JSEARCH_API_KEY is not set — job searches will return 0 results.');
+  console.warn('    Create a .env file in the project root with your RapidAPI key.');
+}
 
 // Ensure the data directory exists so node-json-db can write its files
 const dataDir = path.join(__dirname, 'data');
