@@ -244,17 +244,17 @@ export const searchJSearchAPI = async (filters) => {
     const nonRemoteKeywords = [
       'hybrid', 'in-office', 'onsite', 'on-site', 'in office',
       'office-based', 'office based', 'work from office',
-      'days in office', 'day in office', 'return to office',
-      'in person', 'in-person'
+      'days in office', 'day in office', 'return to office'
     ];
 
-    // Patterns that need context to avoid false positives
+    // Patterns that need context / word boundaries to avoid false positives
     const nonRemotePatterns = [
       /\b\d+\s*days?\s*(per|a|each)\s*week\s*(in|at)\b/i,
       /\b\d+\s*days?\s*(in|at)\s*(the\s+)?office\b/i,
       /\boffice\s*\d+\s*days?\b/i,
       /\b(some|certain)\s*days?\s*(in|at)\s*(the\s+)?office\b/i,
-      /\b(rto|return[\s-]*to[\s-]*office)\b/i
+      /\b(rto|return[\s-]*to[\s-]*office)\b/i,
+      /\bin[\s-]person\b/i   // "in person" / "in-person" but NOT "in personal", "in personnel"
     ];
 
     // Transform JSearch results to our format
@@ -340,17 +340,17 @@ export const searchJSearchAPI = async (filters) => {
         }
 
         // Filter by salary if specified (done after extraction)
-        // Parse all dollar amounts (with optional k suffix) and use max for comparison
+        // Single pass: pull every number (with optional commas), expand k suffix
         if (salary !== 'Not specified' && (minSalary != null || maxSalary != null)) {
-          const dollarMatches = salary.match(/\$\s*([0-9,]+k?)/gi) || [];
-          const bareKMatches = salary.match(/(\d+)k/gi) || [];
-          const allValues = [
-            ...dollarMatches.map(m => {
-              const raw = m.replace(/[$\s,]/g, '');
-              return raw.toLowerCase().endsWith('k') ? parseFloat(raw.slice(0, -1)) * 1000 : parseInt(raw);
-            }),
-            ...bareKMatches.map(m => parseFloat(m) * 1000)
-          ];
+          const allValues = [];
+          const re = /(\d{1,3}(?:,\d{3})*)\s*k?/gi;
+          let match;
+          while ((match = re.exec(salary)) !== null) {
+            const raw = match[1].replace(/,/g, '');
+            let val = parseInt(raw, 10);
+            if (/k\s*$/i.test(match[0])) val *= 1000;
+            allValues.push(val);
+          }
           if (allValues.length > 0) {
             const maxVal = Math.max(...allValues);
             const minVal = Math.min(...allValues);
