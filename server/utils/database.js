@@ -114,16 +114,8 @@ export const isJobSeen = async (job) => {
 };
 
 export const filterNewJobs = async (jobs) => {
-  const newJobs = [];
-
-  for (const job of jobs) {
-    const seen = await isJobSeen(job);
-    if (!seen) {
-      newJobs.push(job);
-    }
-  }
-
-  return newJobs;
+  const seenFlags = await Promise.all(jobs.map(job => isJobSeen(job)));
+  return jobs.filter((_, i) => !seenFlags[i]);
 };
 
 export const markMultipleJobsAsSeen = async (jobs, searchId) => {

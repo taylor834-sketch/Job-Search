@@ -12,12 +12,21 @@ function JobResults({ jobs }) {
         return new Date(b.postingDate) - new Date(a.postingDate);
 
       case 'salary':
-        // Sort by salary (highest first)
+        // Sort by salary (highest first) — use the max value in a range
         const getSalaryValue = (job) => {
           if (!job.salary || job.salary === 'Not specified') return 0;
-          // Extract first number from salary string
-          const match = job.salary.match(/\$([0-9,]+)/);
-          return match ? parseInt(match[1].replace(/,/g, '')) : 0;
+          // Pull all $-prefixed numbers (with optional k suffix) from the string
+          const matches = job.salary.match(/\$\s*([0-9,]+k?)/gi) || [];
+          const values = matches.map(m => {
+            const raw = m.replace(/[$\s,]/g, '');
+            return raw.toLowerCase().endsWith('k')
+              ? parseFloat(raw.slice(0, -1)) * 1000
+              : parseInt(raw);
+          });
+          // Also catch bare "80k - 100k" (no $ sign)
+          const bareK = job.salary.match(/(\d+)k/gi) || [];
+          bareK.forEach(m => values.push(parseFloat(m) * 1000));
+          return values.length ? Math.max(...values) : 0;
         };
         return getSalaryValue(b) - getSalaryValue(a);
 
@@ -54,8 +63,8 @@ function JobResults({ jobs }) {
       </div>
 
       <div className="jobs-grid">
-        {sortedJobs.map((job, index) => (
-          <JobCard key={index} job={job} />
+        {sortedJobs.map((job) => (
+          <JobCard key={job.link} job={job} />
         ))}
       </div>
     </div>

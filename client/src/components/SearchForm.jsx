@@ -232,35 +232,37 @@ function SearchForm({ onResults, onLoading, onError }) {
         </div>
       </div>
 
-      <div className="form-group">
-        <label htmlFor="datePosted">Date Posted</label>
-        <select
-          id="datePosted"
-          value={datePosted}
-          onChange={(e) => setDatePosted(e.target.value)}
-          className="text-input"
-        >
-          <option value="all">All time</option>
-          <option value="today">Today</option>
-          <option value="3days">Last 3 Days</option>
-          <option value="week">Last 7 Days</option>
-          <option value="month">Last 30 Days</option>
-        </select>
-      </div>
+      <div className="form-row">
+        <div className="form-group">
+          <label htmlFor="datePosted">Date Posted</label>
+          <select
+            id="datePosted"
+            value={datePosted}
+            onChange={(e) => setDatePosted(e.target.value)}
+            className="text-input"
+          >
+            <option value="all">All time</option>
+            <option value="today">Today</option>
+            <option value="3days">Last 3 Days</option>
+            <option value="week">Last 7 Days</option>
+            <option value="month">Last 30 Days</option>
+          </select>
+        </div>
 
-      <div className="form-group">
-        <label htmlFor="employmentType">Employment Type</label>
-        <select
-          id="employmentType"
-          value={employmentType}
-          onChange={(e) => setEmploymentType(e.target.value)}
-          className="text-input"
-        >
-          <option value="all">All Types</option>
-          <option value="Full-Time">Full-Time</option>
-          <option value="Part-Time">Part-Time</option>
-          <option value="Contract">Contract</option>
-        </select>
+        <div className="form-group">
+          <label htmlFor="employmentType">Employment Type</label>
+          <select
+            id="employmentType"
+            value={employmentType}
+            onChange={(e) => setEmploymentType(e.target.value)}
+            className="text-input"
+          >
+            <option value="all">All Types</option>
+            <option value="Full-Time">Full-Time</option>
+            <option value="Part-Time">Part-Time</option>
+            <option value="Contract">Contract</option>
+          </select>
+        </div>
       </div>
 
       <button type="submit" className="submit-button">

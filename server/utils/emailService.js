@@ -3,6 +3,13 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+const escapeHtml = (str) =>
+  String(str ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+
 const transporter = nodemailer.createTransport({
   service: process.env.EMAIL_SERVICE || 'gmail',
   auth: {
@@ -23,23 +30,23 @@ export const sendJobAlertEmail = async (recipientEmail, jobs, searchCriteria) =>
 
     const jobsHtml = jobs.map((job, index) => `
       <div style="border: 1px solid #ddd; padding: 15px; margin-bottom: 15px; border-radius: 8px;">
-        <h3 style="margin: 0 0 10px 0; color: #667eea;">${index + 1}. ${job.title}</h3>
-        <p style="margin: 5px 0;"><strong>Company:</strong> ${job.company}</p>
-        <p style="margin: 5px 0;"><strong>Location:</strong> ${job.location}</p>
-        ${job.salary && job.salary !== 'Not specified' ? `<p style="margin: 5px 0;"><strong>Salary:</strong> ${job.salary}</p>` : ''}
-        ${job.postingDate ? `<p style="margin: 5px 0;"><strong>Posted:</strong> ${job.postingDate}</p>` : ''}
-        <p style="margin: 5px 0;"><strong>Source:</strong> ${job.source}</p>
-        ${job.description ? `<p style="margin: 10px 0; color: #666;">${job.description.substring(0, 200)}...</p>` : ''}
-        <a href="${job.link}" style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin-top: 10px;">View Job</a>
+        <h3 style="margin: 0 0 10px 0; color: #667eea;">${index + 1}. ${escapeHtml(job.title)}</h3>
+        <p style="margin: 5px 0;"><strong>Company:</strong> ${escapeHtml(job.company)}</p>
+        <p style="margin: 5px 0;"><strong>Location:</strong> ${escapeHtml(job.location)}</p>
+        ${job.salary && job.salary !== 'Not specified' ? `<p style="margin: 5px 0;"><strong>Salary:</strong> ${escapeHtml(job.salary)}</p>` : ''}
+        ${job.postingDate ? `<p style="margin: 5px 0;"><strong>Posted:</strong> ${escapeHtml(job.postingDate)}</p>` : ''}
+        <p style="margin: 5px 0;"><strong>Source:</strong> ${escapeHtml(job.source)}</p>
+        ${job.description ? `<p style="margin: 10px 0; color: #666;">${escapeHtml(job.description.substring(0, 200))}...</p>` : ''}
+        <a href="${escapeHtml(job.link)}" style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin-top: 10px;">View Job</a>
       </div>
     `).join('');
 
     const criteriaHtml = `
-      <p><strong>Job Title:</strong> ${searchCriteria.jobTitle || 'Any'}</p>
-      ${searchCriteria.locationType?.length ? `<p><strong>Location Type:</strong> ${searchCriteria.locationType.join(', ')}</p>` : ''}
-      ${searchCriteria.companySizes?.length ? `<p><strong>Company Size:</strong> ${searchCriteria.companySizes.join(', ')}</p>` : ''}
-      ${searchCriteria.industries?.length ? `<p><strong>Industries:</strong> ${searchCriteria.industries.join(', ')}</p>` : ''}
-      ${searchCriteria.minSalary || searchCriteria.maxSalary ? `<p><strong>Salary Range:</strong> $${searchCriteria.minSalary || 0} - $${searchCriteria.maxSalary || '∞'}</p>` : ''}
+      <p><strong>Job Title:</strong> ${escapeHtml(searchCriteria.jobTitle || 'Any')}</p>
+      ${searchCriteria.locationType?.length ? `<p><strong>Location Type:</strong> ${escapeHtml(searchCriteria.locationType.join(', '))}</p>` : ''}
+      ${searchCriteria.employmentType && searchCriteria.employmentType !== 'all' ? `<p><strong>Employment Type:</strong> ${escapeHtml(searchCriteria.employmentType)}</p>` : ''}
+      ${searchCriteria.minSalary || searchCriteria.maxSalary ? `<p><strong>Salary Range:</strong> $${Number(searchCriteria.minSalary || 0).toLocaleString()} - $${searchCriteria.maxSalary ? Number(searchCriteria.maxSalary).toLocaleString() : '∞'}</p>` : ''}
+      ${searchCriteria.datePosted && searchCriteria.datePosted !== 'all' ? `<p><strong>Date Posted:</strong> ${escapeHtml(searchCriteria.datePosted)}</p>` : ''}
     `;
 
     const mailOptions = {
