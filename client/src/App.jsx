@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import SearchForm from './components/SearchForm';
 import JobResults from './components/JobResults';
 import JobActions from './components/JobActions';
@@ -9,6 +9,12 @@ function App() {
   const [searchCriteria, setSearchCriteria] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [now, setNow] = useState(new Date());
+
+  useEffect(() => {
+    const interval = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleSearchResults = (results, criteria) => {
     setJobs(results);
@@ -60,6 +66,7 @@ function App() {
 
       <footer className="app-footer">
         <p>Built by <a href="https://realsimplerevops.com" target="_blank" rel="noopener noreferrer">Real Simple RevOps</a></p>
+        <p className="last-updated">Last updated: {now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })} {now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</p>
       </footer>
     </div>
   );

@@ -82,6 +82,12 @@
   margin: 0;
 }
 
+.app-footer .last-updated {
+  font-size: 0.8rem;
+  opacity: 0.6;
+  margin-top: 6px;
+}
+
 .app-footer a {
   color: white;
   text-decoration: none;
