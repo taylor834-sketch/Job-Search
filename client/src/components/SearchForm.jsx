@@ -115,8 +115,8 @@ function SearchForm({ onResults, onLoading, onError }) {
         jobTitle: jobTitle.trim(),
         locationType: locationTypes.map(opt => opt.value),
         location: showLocationInput ? location.trim() : undefined,
-        minSalary: salaryRange[0],
-        maxSalary: salaryRange[1],
+        minSalary: salaryRange[0] > 0 ? salaryRange[0] : null,
+        maxSalary: salaryRange[1] < 300000 ? salaryRange[1] : null,
         datePosted: datePosted,
         employmentType: employmentType
       };
@@ -169,6 +169,7 @@ function SearchForm({ onResults, onLoading, onError }) {
               type="text"
               value={location}
               onChange={handleLocationChange}
+              onBlur={() => setLocationSuggestions([])}
               placeholder="e.g., Portland, Oregon"
               className="text-input"
             />
@@ -190,6 +191,7 @@ function SearchForm({ onResults, onLoading, onError }) {
                 {locationSuggestions.map((suggestion, idx) => (
                   <div
                     key={idx}
+                    onMouseDown={(e) => e.preventDefault()}
                     onClick={() => {
                       setLocation(suggestion);
                       setLocationSuggestions([]);

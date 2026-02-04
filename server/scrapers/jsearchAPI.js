@@ -167,6 +167,32 @@ export const searchJSearchAPI = async (filters) => {
 
     console.log(`JSearch API returned ${jobs.length} total jobs across pages`);
 
+    const employmentTypeMap = {
+      'FULL_TIME': 'Full-Time',
+      'PART_TIME': 'Part-Time',
+      'CONTRACTOR': 'Contract',
+      'TEMPORARY': 'Temporary',
+      'INTERN': 'Internship',
+      'OTHER': null
+    };
+
+    // Plain substring keywords — safe to match anywhere
+    const nonRemoteKeywords = [
+      'hybrid', 'in-office', 'onsite', 'on-site', 'in office',
+      'office-based', 'office based', 'work from office',
+      'days in office', 'day in office', 'return to office',
+      'in person', 'in-person'
+    ];
+
+    // Patterns that need context to avoid false positives
+    const nonRemotePatterns = [
+      /\b\d+\s*days?\s*(per|a|each)\s*week\s*(in|at)\b/i,
+      /\b\d+\s*days?\s*(in|at)\s*(the\s+)?office\b/i,
+      /\boffice\s*\d+\s*days?\b/i,
+      /\b(some|certain)\s*days?\s*(in|at)\s*(the\s+)?office\b/i,
+      /\b(rto|return[\s-]*to[\s-]*office)\b/i
+    ];
+
     // Transform JSearch results to our format
     const transformedJobs = jobs.map(job => {
         // Format salary - try multiple fields aggressively
@@ -225,12 +251,23 @@ export const searchJSearchAPI = async (filters) => {
         }
 
         // Filter by salary if specified (done after extraction)
-        const salaryValue = salary !== 'Not specified' ? parseInt(salary.replace(/[^\d]/g, '')) : 0;
-        if (minSalary && salaryValue > 0 && salaryValue < minSalary) {
-          return null; // Will be filtered out
-        }
-        if (maxSalary && salaryValue > maxSalary) {
-          return null; // Will be filtered out
+        // Parse all dollar amounts (with optional k suffix) and use max for comparison
+        if (salary !== 'Not specified' && (minSalary != null || maxSalary != null)) {
+          const dollarMatches = salary.match(/\$\s*([0-9,]+k?)/gi) || [];
+          const bareKMatches = salary.match(/(\d+)k/gi) || [];
+          const allValues = [
+            ...dollarMatches.map(m => {
+              const raw = m.replace(/[$\s,]/g, '');
+              return raw.toLowerCase().endsWith('k') ? parseFloat(raw.slice(0, -1)) * 1000 : parseInt(raw);
+            }),
+            ...bareKMatches.map(m => parseFloat(m) * 1000)
+          ];
+          if (allValues.length > 0) {
+            const maxVal = Math.max(...allValues);
+            const minVal = Math.min(...allValues);
+            if (minSalary != null && maxVal < minSalary) return null;
+            if (maxSalary != null && minVal > maxSalary) return null;
+          }
         }
 
         // Additional remote filtering - when Remote Only is selected, filter out hybrid/onsite jobs
@@ -241,33 +278,6 @@ export const searchJSearchAPI = async (filters) => {
             [...(job.job_highlights.Qualifications || []),
              ...(job.job_highlights.Responsibilities || []),
              ...(job.job_highlights.Benefits || [])].join(' ').toLowerCase() : '';
-
-          // Plain substring keywords — safe to match anywhere
-          const nonRemoteKeywords = [
-            'hybrid',
-            'in-office',
-            'onsite',
-            'on-site',
-            'in office',
-            'office-based',
-            'office based',
-            'work from office',
-            'days in office',
-            'day in office',
-            'return to office',
-            'in person',
-            'in-person'
-          ];
-
-          // Patterns that need context — bare "2 days" matches "available within 2 days"
-          // and "rto" matches "intro", so use regex with word boundaries / surrounding context
-          const nonRemotePatterns = [
-            /\b\d+\s*days?\s*(per|a|each)\s*week\s*(in|at)\b/i,           // "2 days per week in"
-            /\b\d+\s*days?\s*(in|at)\s*(the\s+)?office\b/i,               // "3 days in the office"
-            /\boffice\s*\d+\s*days?\b/i,                                   // "office 2 days"
-            /\b(some|certain)\s*days?\s*(in|at)\s*(the\s+)?office\b/i,     // "some days in the office"
-            /\b(rto|return[\s-]*to[\s-]*office)\b/i                        // "rto" as whole word
-          ];
 
           const allText = `${jobTitle} ${jobDescription} ${jobHighlights}`;
 
@@ -329,15 +339,6 @@ export const searchJSearchAPI = async (filters) => {
           }
         }
 
-        // Format employment type: FULL_TIME -> Full-Time, PART_TIME -> Part-Time, etc.
-        const employmentTypeMap = {
-          'FULL_TIME': 'Full-Time',
-          'PART_TIME': 'Part-Time',
-          'CONTRACTOR': 'Contract',
-          'TEMPORARY': 'Temporary',
-          'INTERN': 'Internship',
-          'OTHER': null
-        };
         const employmentType = employmentTypeMap[job.job_employment_type] || null;
 
         // employer_company_type from JSearch: "Privately Held", "Public", etc.

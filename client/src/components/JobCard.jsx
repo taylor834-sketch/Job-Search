@@ -4,16 +4,14 @@ import './JobCard.css';
 function JobCard({ job }) {
   const getSourceColor = (source) => {
     const colors = {
-      'LinkedIn': '#0077b5',
-      'BuiltIn': '#ff6b35',
-      'RemoteOK': '#28a745',
-      'WeWorkRemotely': '#7c3aed',
-      'Remote.co': '#f59e0b',
-      'Google Jobs': '#4285f4',
-      'Startup.jobs': '#ec4899',
-      'JSearch API (Google Jobs/LinkedIn/Indeed)': '#667eea'
+      'LinkedIn':     '#0077b5',
+      'Indeed':       '#003224',
+      'Glassdoor':    '#0b6623',
+      'ZipRecruiter': '#dd3933',
+      'Monster':      '#ff6600',
+      'Google Jobs':  '#1a73e8',
     };
-    return colors[source] || '#667eea';
+    return colors[source] || '#5a6abf';
   };
 
   const formatPostingDate = (dateString) => {
