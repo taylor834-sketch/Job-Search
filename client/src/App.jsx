@@ -77,10 +77,10 @@ function App() {
                     <span className={`debug-value ${debugInfo.salaryFilteredOut > 0 ? 'debug-hit' : ''}`}>{debugInfo.salaryFilteredOut} jobs</span>
                   </div>
                 )}
-                {debugInfo.employmentType !== 'all' && (
+                {debugInfo.employmentFilteredOut > 0 && (
                   <div className="debug-row">
-                    <span className="debug-label">Employment type ({debugInfo.employmentType}) removed</span>
-                    <span className={`debug-value ${debugInfo.employmentFilteredOut > 0 ? 'debug-hit' : ''}`}>{debugInfo.employmentFilteredOut} jobs</span>
+                    <span className="debug-label">Non-full-time removed</span>
+                    <span className={`debug-value debug-hit`}>{debugInfo.employmentFilteredOut} jobs</span>
                   </div>
                 )}
                 <div className="debug-row debug-final">
@@ -92,11 +92,9 @@ function App() {
                     ? 'The API itself returned nothing — try a broader search term or change the date filter.'
                     : debugInfo.remoteFilteredOut > 0 && debugInfo.afterEmploymentFilter === 0
                       ? 'The remote filter removed all results. These jobs mentioned office/hybrid keywords. Try removing "Remote Only" or broadening location types.'
-                      : debugInfo.employmentFilteredOut > 0 && debugInfo.afterEmploymentFilter === 0
-                        ? `All ${debugInfo.employmentFilteredOut} jobs were filtered by employment type. Try changing from "${debugInfo.employmentType}" to "All Types".`
-                        : debugInfo.salaryFilteredOut > 0 && debugInfo.afterEmploymentFilter === 0
-                          ? 'The salary range filtered out all results. Try widening your salary range.'
-                          : 'Try relaxing one or more filters to get results.'}
+                      : debugInfo.salaryFilteredOut > 0 && debugInfo.afterEmploymentFilter === 0
+                        ? 'The salary range filtered out all results. Try widening your salary range.'
+                        : 'Try relaxing one or more filters to get results.'}
                 </p>
               </div>
             )}

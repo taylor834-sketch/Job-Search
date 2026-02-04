@@ -49,7 +49,6 @@ function SearchForm({ onResults, onLoading, onError }) {
   const [locationSuggestions, setLocationSuggestions] = useState([]);
   const [salaryRange, setSalaryRange] = useState([0, 300000]);
   const [datePosted, setDatePosted] = useState('all');
-  const [employmentType, setEmploymentType] = useState('all');
 
   // Check if location input should be shown
   const showLocationInput = locationTypes.some(
@@ -117,8 +116,7 @@ function SearchForm({ onResults, onLoading, onError }) {
         location: showLocationInput ? location.trim() : undefined,
         minSalary: salaryRange[0] > 0 ? salaryRange[0] : null,
         maxSalary: salaryRange[1] < 300000 ? salaryRange[1] : null,
-        datePosted: datePosted,
-        employmentType: employmentType
+        datePosted: datePosted
       };
 
       const results = await searchJobs(searchParams);
@@ -234,37 +232,20 @@ function SearchForm({ onResults, onLoading, onError }) {
         </div>
       </div>
 
-      <div className="form-row">
-        <div className="form-group">
-          <label htmlFor="datePosted">Date Posted</label>
-          <select
-            id="datePosted"
-            value={datePosted}
-            onChange={(e) => setDatePosted(e.target.value)}
-            className="text-input"
-          >
-            <option value="all">All time</option>
-            <option value="today">Today</option>
-            <option value="3days">Last 3 Days</option>
-            <option value="week">Last 7 Days</option>
-            <option value="month">Last 30 Days</option>
-          </select>
-        </div>
-
-        <div className="form-group">
-          <label htmlFor="employmentType">Employment Type</label>
-          <select
-            id="employmentType"
-            value={employmentType}
-            onChange={(e) => setEmploymentType(e.target.value)}
-            className="text-input"
-          >
-            <option value="all">All Types</option>
-            <option value="Full-Time">Full-Time</option>
-            <option value="Part-Time">Part-Time</option>
-            <option value="Contract">Contract</option>
-          </select>
-        </div>
+      <div className="form-group">
+        <label htmlFor="datePosted">Date Posted</label>
+        <select
+          id="datePosted"
+          value={datePosted}
+          onChange={(e) => setDatePosted(e.target.value)}
+          className="text-input"
+        >
+          <option value="all">All time</option>
+          <option value="today">Today</option>
+          <option value="3days">Last 3 Days</option>
+          <option value="week">Last 7 Days</option>
+          <option value="month">Last 30 Days</option>
+        </select>
       </div>
 
       <button type="submit" className="submit-button">

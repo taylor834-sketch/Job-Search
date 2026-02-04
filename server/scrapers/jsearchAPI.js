@@ -94,7 +94,7 @@ const scrapeSalaryFromPage = async (url) => {
 };
 
 export const searchJSearchAPI = async (filters) => {
-  const { jobTitle, locationType, location, minSalary, maxSalary, datePosted, employmentType } = filters;
+  const { jobTitle, locationType, location, minSalary, maxSalary, datePosted } = filters;
 
   console.log('Searching JSearch API (Google Jobs, LinkedIn, Indeed)...');
 
@@ -177,7 +177,6 @@ export const searchJSearchAPI = async (filters) => {
       salaryFilteredOut: 0,
       employmentFilteredOut: 0,
       isRemoteOnly: locationType?.includes('remote') && locationType.length === 1,
-      employmentType: employmentType || 'all',
       salaryFilter: { min: minSalary ?? null, max: maxSalary ?? null },
       datePosted: datePosted || 'all'
     };
@@ -381,14 +380,15 @@ export const searchJSearchAPI = async (filters) => {
     debug.afterRemoteFilter = transformedJobs.length;
     debug.afterSalaryFilter = transformedJobs.length; // salary filter runs inside map too, already counted
 
-    // Filter by employment type if specified
-    let filteredJobs = transformedJobs;
-    if (employmentType && employmentType !== 'all') {
-      filteredJobs = transformedJobs.filter(job => job.employmentType === employmentType);
-      debug.employmentFilteredOut = transformedJobs.length - filteredJobs.length;
-      console.log(`Filtered to ${filteredJobs.length} jobs with employment type "${employmentType}" (from ${transformedJobs.length})`);
-    }
+    // Keep only full-time (or unclassified) jobs — drop explicit Part-Time / Contract / etc.
+    // JSearch mislabels many remote jobs, so null/undefined counts as full-time.
+    const nonFullTimeTypes = ['Part-Time', 'Contract', 'Temporary', 'Internship'];
+    let filteredJobs = transformedJobs.filter(job => !nonFullTimeTypes.includes(job.employmentType));
+    debug.employmentFilteredOut = transformedJobs.length - filteredJobs.length;
     debug.afterEmploymentFilter = filteredJobs.length;
+    if (debug.employmentFilteredOut > 0) {
+      console.log(`Dropped ${debug.employmentFilteredOut} non-full-time jobs (from ${transformedJobs.length})`);
+    }
 
     // Post-processing: scrape salary from job pages for jobs missing it
     const missingSalary = filteredJobs.filter(j => j.salary === 'Not specified' && j.link && j.link !== '#');

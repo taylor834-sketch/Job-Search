@@ -11,8 +11,7 @@ export const searchJobs = async (req, res) => {
       location, // City, State for onsite/hybrid
       minSalary,
       maxSalary,
-      datePosted,
-      employmentType
+      datePosted
     } = req.body;
 
     console.log('Starting job search with params:', req.body);
@@ -24,8 +23,7 @@ export const searchJobs = async (req, res) => {
       location,
       minSalary,
       maxSalary,
-      datePosted,
-      employmentType
+      datePosted
     });
 
     console.log(`JSearch API returned ${jobs.length} jobs after filtering`);
