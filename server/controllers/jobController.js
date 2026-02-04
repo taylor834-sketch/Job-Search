@@ -1,8 +1,4 @@
-import { scrapeBuiltIn } from '../scrapers/builtinScraper.js';
-import { scrapeRemoteJobs } from '../scrapers/remoteJobsScraper.js';
-import { scrapeGoogleJobs } from '../scrapers/googleJobsScraper.js';
 import { searchJSearchAPI } from '../scrapers/jsearchAPI.js';
-import { deduplicateJobs } from '../utils/deduplication.js';
 import { generateExcelFile } from '../utils/excelExport.js';
 import { sendJobAlertEmail } from '../utils/emailService.js';
 import { saveSavedSearch, getAllSavedSearches, deleteSavedSearch, toggleSearchActive } from '../utils/database.js';

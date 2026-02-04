@@ -47,7 +47,7 @@ function SearchForm({ onResults, onLoading, onError }) {
   const [locationTypes, setLocationTypes] = useState([]);
   const [location, setLocation] = useState('');
   const [locationSuggestions, setLocationSuggestions] = useState([]);
-  const [salaryRange, setSalaryRange] = useState([30000, 200000]);
+  const [salaryRange, setSalaryRange] = useState([0, 300000]);
   const [datePosted, setDatePosted] = useState('all');
 
   // Check if location input should be shown

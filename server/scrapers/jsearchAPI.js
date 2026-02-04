@@ -6,28 +6,90 @@ import { format } from 'date-fns';
 const extractSalaryFromText = (text) => {
   if (!text) return null;
 
-  // Comprehensive salary patterns
+  // Normalize dashes: en-dash and em-dash to regular hyphen
+  const normalized = text.replace(/[\u2013\u2014]/g, '-');
+
+  const NUM = '(\\d+k|\\d{1,3}(?:,\\d{3})*)';
+  const SEP = '\\s*(?:-|to)\\s*';
+  const DOLLAR = '\\$\\s*';
+  const SUFFIX_ANNUAL = '(?:\\s*(?:per\\s)?(?:year|yr|annually|\\/year|\\/yr|a year))?';
+  const SUFFIX_HOURLY = '\\s*(?:per\\s)?(?:hour|hr|\\/hr|\\/hour)';
+
   const patterns = [
-    // Range patterns: $100,000 - $150,000, $100k - $150k
-    /\$\s*(\d{1,3}(?:,\d{3})*|\d+k)\s*(?:-|to)\s*\$?\s*(\d{1,3}(?:,\d{3})*|\d+k)\s*(?:per\s)?(?:year|yr|annually|\/year|\/yr|a year)?/gi,
-    // Single amount: $100,000, $100k
-    /\$\s*(\d{1,3}(?:,\d{3})*|\d+k)\s*(?:\+)?\s*(?:per\s)?(?:year|yr|annually|\/year|\/yr|a year)?/gi,
-    // Hourly: $50/hr, $50 per hour
-    /\$\s*(\d{1,3}(?:,\d{3})*|\d+)\s*(?:-|to)\s*\$?\s*(\d{1,3}(?:,\d{3})*|\d+)?\s*(?:per\s)?(?:hour|hr|\/hr|\/hour)/gi,
-    // Compensation/Salary prefix
-    /(?:salary|compensation|pay|base pay|annual salary)[\s:]+\$\s*(\d{1,3}(?:,\d{3})*|\d+k)\s*(?:-|to)?\s*\$?\s*(\d{1,3}(?:,\d{3})*|\d+k)?/gi,
-    // K format: 100k - 150k
-    /(\d{2,3})k\s*(?:-|to)\s*(\d{2,3})k/gi
+    // Hourly range: $50 - $70/hr  (must come before annual range)
+    new RegExp(DOLLAR + NUM + SEP + '\\$?\\s*' + NUM + SUFFIX_HOURLY, 'gi'),
+    // Annual range: $100,000 - $150,000 (with optional /year suffix)
+    new RegExp(DOLLAR + NUM + SEP + '\\$?\\s*' + NUM + SUFFIX_ANNUAL, 'gi'),
+    // Single hourly: $50/hr, $65/hour, $50 per hour
+    new RegExp(DOLLAR + NUM + SUFFIX_HOURLY, 'gi'),
+    // Single annual with suffix: $100,000/year, $80,000 per year, $120,000 annually
+    new RegExp(DOLLAR + NUM + '\\s*(?:\\+)?\\s*(?:per\\s)?(?:year|yr|annually|\\/year|\\/yr|a year)', 'gi'),
+    // Salary/Compensation prefix with range: Salary: $90k - $110k
+    new RegExp('(?:salary|compensation|pay|base pay|annual salary)[\\s:]+' + DOLLAR + NUM + SEP + '\\$?\\s*' + NUM, 'gi'),
+    // Salary/Compensation prefix single: Compensation: $100k
+    new RegExp('(?:salary|compensation|pay|base pay|annual salary)[\\s:]+' + DOLLAR + NUM, 'gi'),
+    // Single amount with +: $80,000+
+    new RegExp(DOLLAR + NUM + '\\s*\\+', 'gi'),
+    // K format range: 80k - 100k
+    /(\d{2,3})k\s*(?:-|to)\s*(\d{2,3})k/gi,
+    // Bare dollar amount (last resort): $85,000
+    new RegExp(DOLLAR + NUM, 'gi')
   ];
 
   for (const pattern of patterns) {
-    const match = text.match(pattern);
+    pattern.lastIndex = 0;
+    const match = normalized.match(pattern);
     if (match && match[0]) {
       return match[0].trim();
     }
   }
 
   return null;
+};
+
+// Scrape salary from an actual job posting page
+const scrapeSalaryFromPage = async (url) => {
+  try {
+    const response = await axios.get(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      },
+      timeout: 5000
+    });
+    const $ = cheerio.load(response.data);
+
+    // Collect text from likely salary-containing elements
+    const candidates = [];
+
+    // Common salary container selectors across job sites
+    const selectors = [
+      '[data-testid*="salary"]', '[class*="salary"]', '[class*="Salary"]',
+      '[class*="compensation"]', '[class*="Compensation"]',
+      '[class*="pay"]', '[class*="Pay"]',
+      '[data-testid*="pay"]', '[aria-label*="salary"]',
+      '[aria-label*="Salary"]', '[aria-label*="compensation"]'
+    ];
+
+    selectors.forEach(sel => {
+      $(sel).each((_, el) => {
+        candidates.push($(el).text().trim());
+      });
+    });
+
+    // Also grab the full page text as a fallback for regex matching
+    const bodyText = $('body').text();
+    candidates.push(bodyText);
+
+    // Run salary extraction on all candidates
+    for (const text of candidates) {
+      const extracted = extractSalaryFromText(text);
+      if (extracted) return extracted;
+    }
+
+    return null;
+  } catch (e) {
+    return null; // silently fail - salary scraping is best-effort
+  }
 };
 
 export const searchJSearchAPI = async (filters) => {
@@ -68,29 +130,41 @@ export const searchJSearchAPI = async (filters) => {
     // Determine if we want ONLY remote jobs
     const isRemoteOnly = locationType?.includes('remote') && locationType.length === 1;
 
-    // Build the request - fetch multiple pages for more results
-    const options = {
-      method: 'GET',
-      url: 'https://jsearch.p.rapidapi.com/search',
-      params: {
-        query: query,
-        page: '1',
-        num_pages: '10', // Request 10 pages to get more results
-        date_posted: datePostedMap[datePosted] || 'all',
-        remote_jobs_only: isRemoteOnly ? 'true' : 'false'
-      },
-      headers: {
-        'X-RapidAPI-Key': apiKey,
-        'X-RapidAPI-Host': 'jsearch.p.rapidapi.com'
-      }
+    const headers = {
+      'X-RapidAPI-Key': apiKey,
+      'X-RapidAPI-Host': 'jsearch.p.rapidapi.com'
     };
 
-    console.log('JSearch API request params:', options.params);
+    const baseParams = {
+      query: query,
+      num_pages: '1',
+      date_posted: datePostedMap[datePosted] || 'all',
+      remote_jobs_only: isRemoteOnly ? 'true' : 'false'
+    };
 
-    const response = await axios.request(options);
-    const jobs = response.data.data || [];
+    // Fetch multiple pages sequentially to get more results
+    let jobs = [];
+    const MAX_PAGES = 5;
+    for (let page = 1; page <= MAX_PAGES; page++) {
+      try {
+        const response = await axios.request({
+          method: 'GET',
+          url: 'https://jsearch.p.rapidapi.com/search',
+          params: { ...baseParams, page: String(page) },
+          headers
+        });
 
-    console.log(`JSearch API returned ${jobs.length} jobs (requested 10 pages)`);
+        const pageJobs = response.data.data || [];
+        if (pageJobs.length === 0) break; // No more results
+        jobs = jobs.concat(pageJobs);
+        console.log(`JSearch page ${page}: ${pageJobs.length} jobs`);
+      } catch (pageError) {
+        console.warn(`JSearch page ${page} failed:`, pageError.message);
+        break; // Stop paginating on error (e.g. rate limit)
+      }
+    }
+
+    console.log(`JSearch API returned ${jobs.length} total jobs across pages`);
 
     // Transform JSearch results to our format
     const transformedJobs = jobs.map(job => {
@@ -219,11 +293,14 @@ export const searchJSearchAPI = async (filters) => {
           }
         }
 
-        // Parse posting date
-        let postingDate = format(new Date(), 'yyyy-MM-dd');
+        // Parse posting date - preserve full ISO timestamp so frontend can show accurate relative times
+        let postingDate = new Date().toISOString();
         if (job.job_posted_at_datetime_utc) {
           try {
-            postingDate = format(new Date(job.job_posted_at_datetime_utc), 'yyyy-MM-dd');
+            const parsed = new Date(job.job_posted_at_datetime_utc);
+            if (!isNaN(parsed.getTime())) {
+              postingDate = parsed.toISOString();
+            }
           } catch (e) {
             // Use default if parsing fails
           }
@@ -265,6 +342,33 @@ export const searchJSearchAPI = async (filters) => {
           source: source
         };
       }).filter(job => job !== null); // Remove filtered out jobs
+
+    // Post-processing: scrape salary from job pages for jobs missing it
+    // Limit to 10 concurrent scrapes to avoid hammering servers
+    const missingSalary = transformedJobs.filter(j => j.salary === 'Not specified' && j.link && j.link !== '#');
+    console.log(`${missingSalary.length} jobs missing salary - attempting to scrape from job pages...`);
+
+    if (missingSalary.length > 0) {
+      const SCRAPE_LIMIT = 10;
+      const toScrape = missingSalary.slice(0, SCRAPE_LIMIT);
+
+      const scraped = await Promise.all(
+        toScrape.map(job => scrapeSalaryFromPage(job.link))
+      );
+
+      // Apply scraped salaries back
+      let scrapedCount = 0;
+      scraped.forEach((salary, i) => {
+        if (salary) {
+          const idx = transformedJobs.findIndex(j => j.link === toScrape[i].link);
+          if (idx !== -1) {
+            transformedJobs[idx].salary = salary;
+            scrapedCount++;
+          }
+        }
+      });
+      console.log(`Scraped salary from job pages for ${scrapedCount} additional jobs`);
+    }
 
     const jobsWithSalary = transformedJobs.filter(job => job.salary !== 'Not specified').length;
     console.log(`Returning ${transformedJobs.length} jobs after filtering (${jobsWithSalary} with salary info)`);

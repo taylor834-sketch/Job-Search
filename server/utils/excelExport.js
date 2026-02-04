@@ -6,12 +6,10 @@ export const generateExcelFile = async (jobs) => {
 
   // Define columns
   worksheet.columns = [
-    { header: 'Posting Date', key: 'postingDate', width: 15 },
+    { header: 'Posting Date', key: 'postingDate', width: 20 },
     { header: 'Date Pulled', key: 'datePulled', width: 20 },
     { header: 'Job Title', key: 'title', width: 30 },
     { header: 'Company', key: 'company', width: 25 },
-    { header: 'Company Size', key: 'companySize', width: 15 },
-    { header: 'Industry', key: 'industry', width: 20 },
     { header: 'Location', key: 'location', width: 20 },
     { header: 'Salary', key: 'salary', width: 20 },
     { header: 'Source', key: 'source', width: 15 },
@@ -34,8 +32,6 @@ export const generateExcelFile = async (jobs) => {
       datePulled: job.datePulled,
       title: job.title,
       company: job.company,
-      companySize: job.companySize || 'Not specified',
-      industry: job.industry || 'Not specified',
       location: job.location,
       salary: job.salary || 'Not specified',
       source: job.source,
