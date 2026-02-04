@@ -11,7 +11,7 @@ const runScheduledSearch = async (search) => {
 
     // JSearch API covers Google Jobs, LinkedIn, Indeed, and more
     const daysBack = search.frequency === 'weekly' ? 7 : 1;
-    const allJobs = await searchJSearchAPI({
+    const { jobs: allJobs } = await searchJSearchAPI({
       ...searchCriteria,
       datePosted: daysBack === 1 ? 'today' : 'week'
     });

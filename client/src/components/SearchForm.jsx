@@ -122,7 +122,7 @@ function SearchForm({ onResults, onLoading, onError }) {
       };
 
       const results = await searchJobs(searchParams);
-      onResults(results.jobs || [], searchParams);
+      onResults(results.jobs || [], searchParams, results.debug || null);
 
       if (results.jobs.length === 0) {
         onError('No jobs found. Try adjusting your search criteria.');

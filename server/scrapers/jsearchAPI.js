@@ -167,6 +167,21 @@ export const searchJSearchAPI = async (filters) => {
 
     console.log(`JSearch API returned ${jobs.length} total jobs across pages`);
 
+    // Debug counters — track how many jobs each filter stage drops
+    const debug = {
+      apiReturned: jobs.length,
+      afterRemoteFilter: null,
+      afterSalaryFilter: null,
+      afterEmploymentFilter: null,
+      remoteFilteredOut: 0,
+      salaryFilteredOut: 0,
+      employmentFilteredOut: 0,
+      isRemoteOnly: locationType?.includes('remote') && locationType.length === 1,
+      employmentType: employmentType || 'all',
+      salaryFilter: { min: minSalary ?? null, max: maxSalary ?? null },
+      datePosted: datePosted || 'all'
+    };
+
     const employmentTypeMap = {
       'FULL_TIME': 'Full-Time',
       'PART_TIME': 'Part-Time',
@@ -265,8 +280,8 @@ export const searchJSearchAPI = async (filters) => {
           if (allValues.length > 0) {
             const maxVal = Math.max(...allValues);
             const minVal = Math.min(...allValues);
-            if (minSalary != null && maxVal < minSalary) return null;
-            if (maxSalary != null && minVal > maxSalary) return null;
+            if (minSalary != null && maxVal < minSalary) { debug.salaryFilteredOut++; return null; }
+            if (maxSalary != null && minVal > maxSalary) { debug.salaryFilteredOut++; return null; }
           }
         }
 
@@ -295,11 +310,13 @@ export const searchJSearchAPI = async (filters) => {
 
           // STRICT: If job mentions any non-remote keywords/patterns, filter it out
           if (hasNonRemoteKeyword || hasNonRemotePattern) {
+            debug.remoteFilteredOut++;
             return null;
           }
 
           // Also filter out if it has a specific city location and is NOT marked as remote
           if (hasSpecificCityLocation) {
+            debug.remoteFilteredOut++;
             return null;
           }
         }
@@ -361,12 +378,17 @@ export const searchJSearchAPI = async (filters) => {
         };
       }).filter(job => job !== null); // Remove filtered out jobs
 
+    debug.afterRemoteFilter = transformedJobs.length;
+    debug.afterSalaryFilter = transformedJobs.length; // salary filter runs inside map too, already counted
+
     // Filter by employment type if specified
     let filteredJobs = transformedJobs;
     if (employmentType && employmentType !== 'all') {
       filteredJobs = transformedJobs.filter(job => job.employmentType === employmentType);
+      debug.employmentFilteredOut = transformedJobs.length - filteredJobs.length;
       console.log(`Filtered to ${filteredJobs.length} jobs with employment type "${employmentType}" (from ${transformedJobs.length})`);
     }
+    debug.afterEmploymentFilter = filteredJobs.length;
 
     // Post-processing: scrape salary from job pages for jobs missing it
     const missingSalary = filteredJobs.filter(j => j.salary === 'Not specified' && j.link && j.link !== '#');
@@ -396,8 +418,9 @@ export const searchJSearchAPI = async (filters) => {
 
     const jobsWithSalary = filteredJobs.filter(job => job.salary !== 'Not specified').length;
     console.log(`Returning ${filteredJobs.length} jobs after filtering (${jobsWithSalary} with salary info)`);
+    console.log('Filter debug:', JSON.stringify(debug));
 
-    return filteredJobs;
+    return { jobs: filteredJobs, debug };
 
   } catch (error) {
     if (error.response?.status === 403) {
@@ -407,6 +430,6 @@ export const searchJSearchAPI = async (filters) => {
     } else {
       console.error('JSearch API error:', error.message);
     }
-    return [];
+    return { jobs: [], debug: { error: error.message } };
   }
 };

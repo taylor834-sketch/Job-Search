@@ -18,7 +18,7 @@ export const searchJobs = async (req, res) => {
     console.log('Starting job search with params:', req.body);
 
     // Only use JSearch API - it already covers Google Jobs, LinkedIn, Indeed, and more
-    const jobs = await searchJSearchAPI({
+    const { jobs, debug } = await searchJSearchAPI({
       jobTitle,
       locationType,
       location,
@@ -35,6 +35,7 @@ export const searchJobs = async (req, res) => {
         success: true,
         count: 0,
         jobs: [],
+        debug,
         message: 'No jobs found matching your criteria. Try adjusting your filters (salary range, location, etc.)'
       });
     }
