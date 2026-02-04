@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import SearchForm from './components/SearchForm';
 import JobResults from './components/JobResults';
 import JobActions from './components/JobActions';
+import RecurringSearches from './components/RecurringSearches';
 import './App.css';
 
 function App() {
@@ -12,12 +13,18 @@ function App() {
   const [debugInfo, setDebugInfo] = useState(null);
   const [showDebug, setShowDebug] = useState(false);
   const [selectedJobs, setSelectedJobs] = useState(new Set());
-  const [now, setNow] = useState(new Date());
 
-  useEffect(() => {
-    const interval = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(interval);
-  }, []);
+  // Format the build-time git commit timestamp for the footer.
+  // __BUILD_TIME__ is injected by vite.config.js define plugin at build time.
+  const lastDeployed = (() => {
+    try {
+      const d = new Date(__BUILD_TIME__);
+      return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })
+        + ' ' + d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    } catch {
+      return __BUILD_TIME__;
+    }
+  })();
 
   const handleSearchResults = (results, criteria, debug) => {
     setJobs(results);
@@ -68,6 +75,8 @@ function App() {
             {error}
           </div>
         )}
+
+        <RecurringSearches />
 
         {!loading && jobs.length === 0 && debugInfo && (
           <div className="debug-panel">
@@ -184,7 +193,7 @@ function App() {
 
       <footer className="app-footer">
         <p>Built by <a href="https://realsimplerevops.com" target="_blank" rel="noopener noreferrer">Real Simple RevOps</a></p>
-        <p className="last-updated">Last updated: {now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })} {now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</p>
+        <p className="last-updated">Last deployed: {lastDeployed}</p>
       </footer>
     </div>
   );
