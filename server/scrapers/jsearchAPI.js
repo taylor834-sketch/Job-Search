@@ -103,7 +103,7 @@ export const searchJSearchAPI = async (filters) => {
 
     if (!apiKey) {
       console.warn('JSearch API key not configured. Skipping JSearch results.');
-      return [];
+      return { jobs: [], debug: { error: 'JSEARCH_API_KEY not configured' } };
     }
 
     // Build search query with location if provided
@@ -178,7 +178,10 @@ export const searchJSearchAPI = async (filters) => {
       employmentFilteredOut: 0,
       isRemoteOnly: locationType?.includes('remote') && locationType.length === 1,
       salaryFilter: { min: minSalary ?? null, max: maxSalary ?? null },
-      datePosted: datePosted || 'all'
+      datePosted: datePosted || 'all',
+      query: jobTitle || 'software engineer',
+      remoteReasons: [],      // per-job: why was it killed by remote filter
+      employmentReasons: []   // per-job: why was it killed by employment filter
     };
 
     const employmentTypeMap = {
@@ -295,8 +298,19 @@ export const searchJSearchAPI = async (filters) => {
 
           const allText = `${jobTitle} ${jobDescription} ${jobHighlights}`;
 
-          const hasNonRemoteKeyword = nonRemoteKeywords.some(keyword => allText.includes(keyword));
-          const hasNonRemotePattern = nonRemotePatterns.some(pattern => pattern.test(allText));
+          const matchedKeyword = nonRemoteKeywords.find(kw => allText.includes(kw));
+          if (matchedKeyword) {
+            debug.remoteFilteredOut++;
+            debug.remoteReasons.push({ title: job.job_title, reason: `keyword "${matchedKeyword}"` });
+            return null;
+          }
+
+          const matchedPattern = nonRemotePatterns.find(p => p.test(allText));
+          if (matchedPattern) {
+            debug.remoteFilteredOut++;
+            debug.remoteReasons.push({ title: job.job_title, reason: `pattern ${matchedPattern.toString()}` });
+            return null;
+          }
 
           // Filter out jobs with specific city locations (remote jobs typically don't have cities)
           // BUT be more lenient - only filter if it has a city AND is not marked as remote
@@ -307,15 +321,9 @@ export const searchJSearchAPI = async (filters) => {
             !job.job_city.toLowerCase().includes('worldwide') &&
             !job.job_is_remote;
 
-          // STRICT: If job mentions any non-remote keywords/patterns, filter it out
-          if (hasNonRemoteKeyword || hasNonRemotePattern) {
-            debug.remoteFilteredOut++;
-            return null;
-          }
-
-          // Also filter out if it has a specific city location and is NOT marked as remote
           if (hasSpecificCityLocation) {
             debug.remoteFilteredOut++;
+            debug.remoteReasons.push({ title: job.job_title, reason: `city "${job.job_city}, ${job.job_state}" not marked remote` });
             return null;
           }
         }
@@ -377,14 +385,21 @@ export const searchJSearchAPI = async (filters) => {
         };
       }).filter(job => job !== null); // Remove filtered out jobs
 
-    debug.afterRemoteFilter = transformedJobs.length;
-    debug.afterSalaryFilter = transformedJobs.length; // salary filter runs inside map too, already counted
+    // afterRemoteFilter = what survived the .map() (remote + salary both ran in there)
+    debug.afterRemoteFilter = transformedJobs.length + debug.remoteFilteredOut; // before remote ran
+    debug.afterSalaryFilter = transformedJobs.length; // after salary + remote both ran
 
     // Keep only full-time (or unclassified) jobs — drop explicit Part-Time / Contract / etc.
     // JSearch mislabels many remote jobs, so null/undefined counts as full-time.
     const nonFullTimeTypes = ['Part-Time', 'Contract', 'Temporary', 'Internship'];
-    let filteredJobs = transformedJobs.filter(job => !nonFullTimeTypes.includes(job.employmentType));
-    debug.employmentFilteredOut = transformedJobs.length - filteredJobs.length;
+    let filteredJobs = transformedJobs.filter(job => {
+      if (nonFullTimeTypes.includes(job.employmentType)) {
+        debug.employmentFilteredOut++;
+        debug.employmentReasons.push({ title: job.title, employmentType: job.employmentType });
+        return false;
+      }
+      return true;
+    });
     debug.afterEmploymentFilter = filteredJobs.length;
     if (debug.employmentFilteredOut > 0) {
       console.log(`Dropped ${debug.employmentFilteredOut} non-full-time jobs (from ${transformedJobs.length})`);

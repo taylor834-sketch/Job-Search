@@ -61,40 +61,90 @@ function App() {
             {showDebug && (
               <div className="debug-details">
                 <p className="debug-title">Where did the jobs go?</p>
+
+                {/* Search query that was actually sent */}
+                <div className="debug-row">
+                  <span className="debug-label">Query sent to API</span>
+                  <span className="debug-value debug-query">"{debugInfo.query}"</span>
+                </div>
+                <div className="debug-row">
+                  <span className="debug-label">Date filter</span>
+                  <span className="debug-value">{debugInfo.datePosted}</span>
+                </div>
+
+                {/* API raw count */}
                 <div className="debug-row">
                   <span className="debug-label">API returned</span>
                   <span className="debug-value">{debugInfo.apiReturned ?? '—'} jobs</span>
                 </div>
-                {debugInfo.isRemoteOnly && (
-                  <div className="debug-row">
-                    <span className="debug-label">Remote filter removed</span>
-                    <span className={`debug-value ${debugInfo.remoteFilteredOut > 0 ? 'debug-hit' : ''}`}>{debugInfo.remoteFilteredOut} jobs</span>
-                  </div>
-                )}
-                {(debugInfo.salaryFilter?.min != null || debugInfo.salaryFilter?.max != null) && (
+
+                {/* Salary filter row + reasons */}
+                {debugInfo.salaryFilteredOut > 0 && (
                   <div className="debug-row">
                     <span className="debug-label">Salary filter removed</span>
-                    <span className={`debug-value ${debugInfo.salaryFilteredOut > 0 ? 'debug-hit' : ''}`}>{debugInfo.salaryFilteredOut} jobs</span>
+                    <span className="debug-value debug-hit">{debugInfo.salaryFilteredOut} jobs</span>
                   </div>
                 )}
+
+                {/* Remote filter row + per-job reasons */}
+                {debugInfo.isRemoteOnly && (
+                  <>
+                    <div className="debug-row">
+                      <span className="debug-label">Remote filter removed</span>
+                      <span className={`debug-value ${debugInfo.remoteFilteredOut > 0 ? 'debug-hit' : ''}`}>{debugInfo.remoteFilteredOut} jobs</span>
+                    </div>
+                    {debugInfo.remoteReasons?.length > 0 && (
+                      <div className="debug-reasons">
+                        {debugInfo.remoteReasons.map((r, i) => (
+                          <div key={i} className="debug-reason-item">
+                            <span className="debug-reason-title">{r.title}</span>
+                            <span className="debug-reason-why">{r.reason}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {/* Employment filter row + per-job reasons */}
                 {debugInfo.employmentFilteredOut > 0 && (
-                  <div className="debug-row">
-                    <span className="debug-label">Non-full-time removed</span>
-                    <span className={`debug-value debug-hit`}>{debugInfo.employmentFilteredOut} jobs</span>
-                  </div>
+                  <>
+                    <div className="debug-row">
+                      <span className="debug-label">Non-full-time removed</span>
+                      <span className="debug-value debug-hit">{debugInfo.employmentFilteredOut} jobs</span>
+                    </div>
+                    {debugInfo.employmentReasons?.length > 0 && (
+                      <div className="debug-reasons">
+                        {debugInfo.employmentReasons.map((r, i) => (
+                          <div key={i} className="debug-reason-item">
+                            <span className="debug-reason-title">{r.title}</span>
+                            <span className="debug-reason-why">{r.employmentType}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </>
                 )}
+
+                {/* Final count */}
                 <div className="debug-row debug-final">
                   <span className="debug-label">Remaining after all filters</span>
                   <span className="debug-value">{debugInfo.afterEmploymentFilter ?? 0} jobs</span>
                 </div>
+
+                {/* Hint — pick the LAST filter that brought it to zero */}
                 <p className="debug-hint">
-                  {debugInfo.apiReturned === 0
-                    ? 'The API itself returned nothing — try a broader search term or change the date filter.'
-                    : debugInfo.remoteFilteredOut > 0 && debugInfo.afterEmploymentFilter === 0
-                      ? 'The remote filter removed all results. These jobs mentioned office/hybrid keywords. Try removing "Remote Only" or broadening location types.'
-                      : debugInfo.salaryFilteredOut > 0 && debugInfo.afterEmploymentFilter === 0
-                        ? 'The salary range filtered out all results. Try widening your salary range.'
-                        : 'Try relaxing one or more filters to get results.'}
+                  {debugInfo.error
+                    ? debugInfo.error
+                    : debugInfo.apiReturned === 0
+                      ? 'The API itself returned nothing. Try a broader search term or change the date filter (e.g. "Last 7 Days" instead of "Today").'
+                      : debugInfo.employmentFilteredOut > 0 && debugInfo.afterEmploymentFilter === 0
+                        ? `${debugInfo.employmentFilteredOut} job${debugInfo.employmentFilteredOut > 1 ? 's' : ''} survived the remote filter but were all explicitly Part-Time or Contract. The API may be mislabelling them — or these are genuinely not full-time roles.`
+                        : debugInfo.salaryFilteredOut > 0 && debugInfo.afterEmploymentFilter === 0
+                          ? 'All jobs were outside your salary range. Try widening it or removing it entirely.'
+                          : debugInfo.remoteFilteredOut > 0 && debugInfo.afterEmploymentFilter === 0
+                            ? 'Every job the API returned was flagged as hybrid/onsite by our keyword scanner. Try adding "Onsite" or "Hybrid" to your location types.'
+                            : 'Try relaxing one or more filters to get results.'}
                 </p>
               </div>
             )}

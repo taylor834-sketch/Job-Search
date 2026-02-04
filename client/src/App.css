@@ -172,6 +172,48 @@
   font-weight: 700;
 }
 
+.debug-value.debug-query {
+  font-style: italic;
+  color: #555;
+}
+
+/* Per-job reason lists inside the debug panel */
+.debug-reasons {
+  margin: 6px 0 10px 0;
+  padding: 8px 10px;
+  background: #fff5f5;
+  border: 1px solid #f0d0d0;
+  border-radius: 6px;
+}
+
+.debug-reason-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 3px 0;
+  font-size: 0.83rem;
+  gap: 12px;
+}
+
+.debug-reason-item + .debug-reason-item {
+  border-top: 1px solid #f5e0e0;
+}
+
+.debug-reason-title {
+  color: #555;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 55%;
+}
+
+.debug-reason-why {
+  color: #c0392b;
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
 .debug-hint {
   margin: 14px 0 0 0;
   padding: 10px 12px;
