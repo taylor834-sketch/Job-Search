@@ -13,7 +13,7 @@ const dayOptions = [
   { value: 'sunday', label: 'Sunday' }
 ];
 
-function JobActions({ jobs, searchCriteria }) {
+function JobActions({ jobs, searchCriteria, selectedJobs }) {
   const [showRecurringModal, setShowRecurringModal] = useState(false);
   const [frequency, setFrequency] = useState('daily');
   const [dayOfWeek, setDayOfWeek] = useState(null);
@@ -21,17 +21,25 @@ function JobActions({ jobs, searchCriteria }) {
   const [message, setMessage] = useState(null);
   const [isExporting, setIsExporting] = useState(false);
 
-  const handleExport = async () => {
+  const runExport = async (jobsToExport) => {
     setIsExporting(true);
     try {
-      await exportJobs(jobs);
-      setMessage({ type: 'success', text: 'Jobs exported successfully!' });
+      await exportJobs(jobsToExport);
+      setMessage({ type: 'success', text: `Exported ${jobsToExport.length} job${jobsToExport.length !== 1 ? 's' : ''} successfully!` });
       setTimeout(() => setMessage(null), 3000);
     } catch (error) {
       setMessage({ type: 'error', text: 'Failed to export jobs' });
     } finally {
       setIsExporting(false);
     }
+  };
+
+  const handleExportAll = () => runExport(jobs);
+
+  const handleExportSelected = () => {
+    const selected = jobs.filter(j => selectedJobs.has(j.link));
+    if (selected.length === 0) return;
+    runExport(selected);
   };
 
   const handleCreateRecurring = async () => {
@@ -65,11 +73,19 @@ function JobActions({ jobs, searchCriteria }) {
     <div className="job-actions">
       <div className="action-buttons">
         <button
-          onClick={handleExport}
+          onClick={handleExportAll}
           disabled={isExporting || jobs.length === 0}
           className="action-btn export-btn"
         >
-          {isExporting ? 'Exporting...' : 'Export to Excel'}
+          {isExporting ? 'Exporting...' : `Export All (${jobs.length})`}
+        </button>
+
+        <button
+          onClick={handleExportSelected}
+          disabled={isExporting || selectedJobs.size === 0}
+          className="action-btn export-selected-btn"
+        >
+          Export Selected ({selectedJobs.size})
         </button>
 
         <button

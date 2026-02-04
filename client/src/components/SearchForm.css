@@ -38,6 +38,11 @@
   gap: 20px;
 }
 
+/* Collapse to single column when only one child is present (e.g. location type without city input) */
+.form-row > :only-child {
+  grid-column: 1 / -1;
+}
+
 .slider-container {
   padding: 20px 10px;
 }

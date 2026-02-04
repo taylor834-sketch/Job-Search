@@ -11,6 +11,7 @@ function App() {
   const [error, setError] = useState(null);
   const [debugInfo, setDebugInfo] = useState(null);
   const [showDebug, setShowDebug] = useState(false);
+  const [selectedJobs, setSelectedJobs] = useState(new Set());
   const [now, setNow] = useState(new Date());
 
   useEffect(() => {
@@ -23,6 +24,21 @@ function App() {
     setSearchCriteria(criteria);
     setDebugInfo(debug);
     setShowDebug(false);
+    setSelectedJobs(new Set());
+  };
+
+  const handleToggleSelect = (jobLink) => {
+    setSelectedJobs(prev => {
+      const next = new Set(prev);
+      next.has(jobLink) ? next.delete(jobLink) : next.add(jobLink);
+      return next;
+    });
+  };
+
+  const handleSelectAll = () => {
+    setSelectedJobs(prev =>
+      prev.size === jobs.length ? new Set() : new Set(jobs.map(j => j.link))
+    );
   };
 
   const handleLoading = (isLoading) => {
@@ -160,8 +176,8 @@ function App() {
 
         {!loading && jobs.length > 0 && (
           <>
-            <JobActions jobs={jobs} searchCriteria={searchCriteria} />
-            <JobResults jobs={jobs} />
+            <JobActions jobs={jobs} searchCriteria={searchCriteria} selectedJobs={selectedJobs} />
+            <JobResults jobs={jobs} selectedJobs={selectedJobs} onToggleSelect={handleToggleSelect} onSelectAll={handleSelectAll} />
           </>
         )}
       </div>

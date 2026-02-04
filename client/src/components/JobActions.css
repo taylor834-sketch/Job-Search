@@ -34,6 +34,16 @@
   transform: translateY(-2px);
 }
 
+.export-selected-btn {
+  background: #2196f3;
+  color: white;
+}
+
+.export-selected-btn:hover:not(:disabled) {
+  background: #1976d2;
+  transform: translateY(-2px);
+}
+
 .recurring-btn {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
@@ -141,18 +151,7 @@
   font-weight: 500;
 }
 
-.text-input {
-  width: 100%;
-  padding: 10px;
-  border: 2px solid #e0e0e0;
-  border-radius: 6px;
-  font-size: 0.95rem;
-}
-
-.text-input:focus {
-  outline: none;
-  border-color: #667eea;
-}
+/* .text-input is defined in SearchForm.css — used here via the modal email field */
 
 small {
   display: block;

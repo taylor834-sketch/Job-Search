@@ -11,16 +11,43 @@
   gap: 12px;
 }
 
-.sort-controls {
+.results-controls {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 16px;
+  flex-wrap: wrap;
 }
 
-.sort-controls label {
+.results-controls label {
   font-weight: 600;
   color: #555;
   font-size: 0.9rem;
+}
+
+.select-all-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  user-select: none;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid #e0e0e0;
+  background: white;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.select-all-label:hover {
+  background: #f8f9ff;
+  border-color: #667eea;
+}
+
+.select-all-checkbox {
+  width: 16px;
+  height: 16px;
+  accent-color: #667eea;
+  cursor: pointer;
+  margin: 0;
 }
 
 .sort-select {

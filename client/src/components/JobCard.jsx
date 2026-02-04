@@ -1,7 +1,7 @@
 import { formatDistanceToNow } from 'date-fns';
 import './JobCard.css';
 
-function JobCard({ job }) {
+function JobCard({ job, isSelected, onToggleSelect }) {
   const getSourceColor = (source) => {
     const colors = {
       'LinkedIn':     '#0077b5',
@@ -24,8 +24,16 @@ function JobCard({ job }) {
   };
 
   return (
-    <div className="job-card">
+    <div className={`job-card${isSelected ? ' job-card--selected' : ''}`}>
       <div className="job-card-header">
+        <label className="job-checkbox-label">
+          <input
+            type="checkbox"
+            className="job-checkbox"
+            checked={!!isSelected}
+            onChange={onToggleSelect}
+          />
+        </label>
         <div className="job-title-section">
           <h3 className="job-title">{job.title}</h3>
           <div className="job-company">{job.company}</div>

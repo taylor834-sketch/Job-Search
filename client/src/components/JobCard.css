@@ -1,9 +1,9 @@
 .job-card {
   background: white;
-  border: 1px solid #e0e0e0;
+  border: 2px solid #e0e0e0;
   border-radius: 12px;
   padding: 16px;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s, background 0.2s;
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -12,6 +12,31 @@
 .job-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+}
+
+.job-card--selected {
+  border-color: #667eea;
+  background: #f8f9ff;
+}
+
+.job-card--selected:hover {
+  box-shadow: 0 6px 16px rgba(102, 126, 234, 0.2);
+}
+
+/* Checkbox in the card header */
+.job-checkbox-label {
+  display: flex;
+  align-items: flex-start;
+  flex-shrink: 0;
+  padding-top: 2px;
+}
+
+.job-checkbox {
+  width: 18px;
+  height: 18px;
+  accent-color: #667eea;
+  cursor: pointer;
+  margin: 0;
 }
 
 .job-card-header {

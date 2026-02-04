@@ -44,13 +44,6 @@ export const generateExcelFile = async (jobs) => {
     });
   });
 
-  // Auto-fit columns (approximate)
-  worksheet.columns.forEach(column => {
-    if (column.key === 'link') {
-      column.width = 50;
-    }
-  });
-
   // Generate buffer
   const buffer = await workbook.xlsx.writeBuffer();
   return buffer;

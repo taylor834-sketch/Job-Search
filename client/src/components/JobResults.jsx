@@ -2,38 +2,36 @@ import { useState } from 'react';
 import JobCard from './JobCard';
 import './JobResults.css';
 
-function JobResults({ jobs }) {
+function JobResults({ jobs, selectedJobs, onToggleSelect, onSelectAll }) {
   const [sortBy, setSortBy] = useState('date'); // date, salary, company
+
+  const allSelected = jobs.length > 0 && selectedJobs.size === jobs.length;
+  const someSelected = selectedJobs.size > 0 && !allSelected;
+
+  // Extract the largest numeric salary value from a normalised salary string
+  const getSalaryValue = (job) => {
+    if (!job.salary || job.salary === 'Not specified') return 0;
+    const values = [];
+    // Match every number in the string (with optional commas), expand k suffix
+    const re = /(\d{1,3}(?:,\d{3})*)\s*k?/gi;
+    let m;
+    while ((m = re.exec(job.salary)) !== null) {
+      const raw = m[1].replace(/,/g, '');
+      let val = parseInt(raw, 10);
+      if (/k\s*$/i.test(m[0])) val *= 1000;
+      values.push(val);
+    }
+    return values.length ? Math.max(...values) : 0;
+  };
 
   const sortedJobs = [...jobs].sort((a, b) => {
     switch (sortBy) {
       case 'date':
-        // Sort by posting date (newest first)
         return new Date(b.postingDate) - new Date(a.postingDate);
-
       case 'salary':
-        // Sort by salary (highest first) — use the max value in a range
-        const getSalaryValue = (job) => {
-          if (!job.salary || job.salary === 'Not specified') return 0;
-          // Pull all $-prefixed numbers (with optional k suffix) from the string
-          const matches = job.salary.match(/\$\s*([0-9,]+k?)/gi) || [];
-          const values = matches.map(m => {
-            const raw = m.replace(/[$\s,]/g, '');
-            return raw.toLowerCase().endsWith('k')
-              ? parseFloat(raw.slice(0, -1)) * 1000
-              : parseInt(raw);
-          });
-          // Also catch bare "80k - 100k" (no $ sign)
-          const bareK = job.salary.match(/(\d+)k/gi) || [];
-          bareK.forEach(m => values.push(parseFloat(m) * 1000));
-          return values.length ? Math.max(...values) : 0;
-        };
         return getSalaryValue(b) - getSalaryValue(a);
-
       case 'company':
-        // Sort by company name (A-Z)
         return (a.company || '').localeCompare(b.company || '');
-
       default:
         return 0;
     }
@@ -42,12 +40,25 @@ function JobResults({ jobs }) {
   return (
     <div className="job-results">
       <div className="results-header">
-        <div>
-          <h2>Search Results</h2>
-          <p>{jobs.length} jobs found</p>
+        <div className="results-title-row">
+          <div>
+            <h2>Search Results</h2>
+            <p>{jobs.length} job{jobs.length !== 1 ? 's' : ''} found{selectedJobs.size > 0 ? ` · ${selectedJobs.size} selected` : ''}</p>
+          </div>
         </div>
 
-        <div className="sort-controls">
+        <div className="results-controls">
+          <label className="select-all-label">
+            <input
+              type="checkbox"
+              className="select-all-checkbox"
+              checked={allSelected}
+              ref={el => { if (el) el.indeterminate = someSelected; }}
+              onChange={onSelectAll}
+            />
+            <span>Select all</span>
+          </label>
+
           <label htmlFor="sort-by">Sort by:</label>
           <select
             id="sort-by"
@@ -64,7 +75,12 @@ function JobResults({ jobs }) {
 
       <div className="jobs-grid">
         {sortedJobs.map((job) => (
-          <JobCard key={job.link} job={job} />
+          <JobCard
+            key={job.link}
+            job={job}
+            isSelected={selectedJobs.has(job.link)}
+            onToggleSelect={() => onToggleSelect(job.link)}
+          />
         ))}
       </div>
     </div>
