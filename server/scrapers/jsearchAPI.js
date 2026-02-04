@@ -242,7 +242,7 @@ export const searchJSearchAPI = async (filters) => {
              ...(job.job_highlights.Responsibilities || []),
              ...(job.job_highlights.Benefits || [])].join(' ').toLowerCase() : '';
 
-          // Comprehensive list of non-remote keywords
+          // Plain substring keywords — safe to match anywhere
           const nonRemoteKeywords = [
             'hybrid',
             'in-office',
@@ -254,25 +254,25 @@ export const searchJSearchAPI = async (filters) => {
             'work from office',
             'days in office',
             'day in office',
-            'days per week in',
-            'days/week in',
-            'x days in',
-            '2 days',
-            '3 days',
-            '4 days',
-            'some days',
             'return to office',
-            'rto',
             'in person',
             'in-person'
           ];
 
-          // Check title, description, and highlights for non-remote keywords
-          const hasNonRemoteKeyword = nonRemoteKeywords.some(keyword =>
-            jobTitle.includes(keyword) ||
-            jobDescription.includes(keyword) ||
-            jobHighlights.includes(keyword)
-          );
+          // Patterns that need context — bare "2 days" matches "available within 2 days"
+          // and "rto" matches "intro", so use regex with word boundaries / surrounding context
+          const nonRemotePatterns = [
+            /\b\d+\s*days?\s*(per|a|each)\s*week\s*(in|at)\b/i,           // "2 days per week in"
+            /\b\d+\s*days?\s*(in|at)\s*(the\s+)?office\b/i,               // "3 days in the office"
+            /\boffice\s*\d+\s*days?\b/i,                                   // "office 2 days"
+            /\b(some|certain)\s*days?\s*(in|at)\s*(the\s+)?office\b/i,     // "some days in the office"
+            /\b(rto|return[\s-]*to[\s-]*office)\b/i                        // "rto" as whole word
+          ];
+
+          const allText = `${jobTitle} ${jobDescription} ${jobHighlights}`;
+
+          const hasNonRemoteKeyword = nonRemoteKeywords.some(keyword => allText.includes(keyword));
+          const hasNonRemotePattern = nonRemotePatterns.some(pattern => pattern.test(allText));
 
           // Filter out jobs with specific city locations (remote jobs typically don't have cities)
           // BUT be more lenient - only filter if it has a city AND is not marked as remote
@@ -283,8 +283,8 @@ export const searchJSearchAPI = async (filters) => {
             !job.job_city.toLowerCase().includes('worldwide') &&
             !job.job_is_remote;
 
-          // STRICT: If job mentions any non-remote keywords, filter it out
-          if (hasNonRemoteKeyword) {
+          // STRICT: If job mentions any non-remote keywords/patterns, filter it out
+          if (hasNonRemoteKeyword || hasNonRemotePattern) {
             return null;
           }
 
