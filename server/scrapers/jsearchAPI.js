@@ -54,7 +54,8 @@ const scrapeSalaryFromPage = async (url) => {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
       },
-      timeout: 5000
+      timeout: 8000,
+      maxContentLength: 2 * 1024 * 1024 // 2MB cap on response size
     });
     const $ = cheerio.load(response.data);
 
@@ -76,8 +77,8 @@ const scrapeSalaryFromPage = async (url) => {
       });
     });
 
-    // Also grab the full page text as a fallback for regex matching
-    const bodyText = $('body').text();
+    // Grab body text as fallback, but cap it to avoid regex thrashing on huge pages
+    const bodyText = $('body').text().substring(0, 50000);
     candidates.push(bodyText);
 
     // Run salary extraction on all candidates
@@ -93,7 +94,7 @@ const scrapeSalaryFromPage = async (url) => {
 };
 
 export const searchJSearchAPI = async (filters) => {
-  const { jobTitle, locationType, location, minSalary, maxSalary, datePosted } = filters;
+  const { jobTitle, locationType, location, minSalary, maxSalary, datePosted, employmentType } = filters;
 
   console.log('Searching JSearch API (Google Jobs, LinkedIn, Indeed)...');
 
@@ -359,13 +360,19 @@ export const searchJSearchAPI = async (filters) => {
         };
       }).filter(job => job !== null); // Remove filtered out jobs
 
+    // Filter by employment type if specified
+    let filteredJobs = transformedJobs;
+    if (employmentType && employmentType !== 'all') {
+      filteredJobs = transformedJobs.filter(job => job.employmentType === employmentType);
+      console.log(`Filtered to ${filteredJobs.length} jobs with employment type "${employmentType}" (from ${transformedJobs.length})`);
+    }
+
     // Post-processing: scrape salary from job pages for jobs missing it
-    // Limit to 10 concurrent scrapes to avoid hammering servers
-    const missingSalary = transformedJobs.filter(j => j.salary === 'Not specified' && j.link && j.link !== '#');
+    const missingSalary = filteredJobs.filter(j => j.salary === 'Not specified' && j.link && j.link !== '#');
     console.log(`${missingSalary.length} jobs missing salary - attempting to scrape from job pages...`);
 
     if (missingSalary.length > 0) {
-      const SCRAPE_LIMIT = 10;
+      const SCRAPE_LIMIT = 15;
       const toScrape = missingSalary.slice(0, SCRAPE_LIMIT);
 
       const scraped = await Promise.all(
@@ -376,9 +383,9 @@ export const searchJSearchAPI = async (filters) => {
       let scrapedCount = 0;
       scraped.forEach((salary, i) => {
         if (salary) {
-          const idx = transformedJobs.findIndex(j => j.link === toScrape[i].link);
+          const idx = filteredJobs.findIndex(j => j.link === toScrape[i].link);
           if (idx !== -1) {
-            transformedJobs[idx].salary = salary;
+            filteredJobs[idx].salary = salary;
             scrapedCount++;
           }
         }
@@ -386,10 +393,10 @@ export const searchJSearchAPI = async (filters) => {
       console.log(`Scraped salary from job pages for ${scrapedCount} additional jobs`);
     }
 
-    const jobsWithSalary = transformedJobs.filter(job => job.salary !== 'Not specified').length;
-    console.log(`Returning ${transformedJobs.length} jobs after filtering (${jobsWithSalary} with salary info)`);
+    const jobsWithSalary = filteredJobs.filter(job => job.salary !== 'Not specified').length;
+    console.log(`Returning ${filteredJobs.length} jobs after filtering (${jobsWithSalary} with salary info)`);
 
-    return transformedJobs;
+    return filteredJobs;
 
   } catch (error) {
     if (error.response?.status === 403) {
