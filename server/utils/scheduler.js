@@ -1,10 +1,6 @@
 import cron from 'node-cron';
 import { getAllSavedSearches, updateLastRun, filterJobsByPostingDate, filterNewJobs, markMultipleJobsAsSeen, cleanupOldSeenJobs } from './database.js';
-import { scrapeBuiltIn } from '../scrapers/builtinScraper.js';
-import { scrapeRemoteJobs } from '../scrapers/remoteJobsScraper.js';
-import { scrapeGoogleJobs } from '../scrapers/googleJobsScraper.js';
 import { searchJSearchAPI } from '../scrapers/jsearchAPI.js';
-import { deduplicateJobs } from './deduplication.js';
 import { sendJobAlertEmail } from './emailService.js';
 
 const runScheduledSearch = async (search) => {
@@ -12,39 +8,16 @@ const runScheduledSearch = async (search) => {
     console.log(`Running scheduled search: ${search.id}`);
 
     const { searchCriteria } = search;
-    const jobPromises = [];
 
-    // Run scrapers based on sources
-    // JSearch API as primary source
-    jobPromises.push(searchJSearchAPI(searchCriteria));
-
-    if (!searchCriteria.sources || searchCriteria.sources.includes('builtin')) {
-      jobPromises.push(scrapeBuiltIn(searchCriteria));
-    }
-
-    if (!searchCriteria.sources || searchCriteria.sources.includes('remote')) {
-      jobPromises.push(scrapeRemoteJobs(searchCriteria));
-    }
-
-    if (!searchCriteria.sources || searchCriteria.sources.includes('google')) {
-      jobPromises.push(scrapeGoogleJobs(searchCriteria));
-    }
-
-    const results = await Promise.allSettled(jobPromises);
-
-    let allJobs = [];
-    results.forEach((result) => {
-      if (result.status === 'fulfilled') {
-        allJobs = allJobs.concat(result.value);
-      }
+    // JSearch API covers Google Jobs, LinkedIn, Indeed, and more
+    const daysBack = search.frequency === 'weekly' ? 7 : 1;
+    const allJobs = await searchJSearchAPI({
+      ...searchCriteria,
+      datePosted: daysBack === 1 ? 'today' : 'week'
     });
 
-    // Deduplicate
-    let uniqueJobs = deduplicateJobs(allJobs);
-
     // Filter by posting date based on frequency
-    const daysBack = search.frequency === 'weekly' ? 7 : 1;
-    uniqueJobs = filterJobsByPostingDate(uniqueJobs, daysBack);
+    let uniqueJobs = filterJobsByPostingDate(allJobs, daysBack);
 
     // Filter out jobs we've already seen
     uniqueJobs = await filterNewJobs(uniqueJobs);

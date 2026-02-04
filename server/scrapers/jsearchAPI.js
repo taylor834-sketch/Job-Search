@@ -328,6 +328,20 @@ export const searchJSearchAPI = async (filters) => {
           }
         }
 
+        // Format employment type: FULL_TIME -> Full-Time, PART_TIME -> Part-Time, etc.
+        const employmentTypeMap = {
+          'FULL_TIME': 'Full-Time',
+          'PART_TIME': 'Part-Time',
+          'CONTRACTOR': 'Contract',
+          'TEMPORARY': 'Temporary',
+          'INTERN': 'Internship',
+          'OTHER': null
+        };
+        const employmentType = employmentTypeMap[job.job_employment_type] || null;
+
+        // employer_company_type from JSearch: "Privately Held", "Public", etc.
+        const companyType = job.employer_company_type || null;
+
         return {
           title: job.job_title || 'No title',
           company: job.employer_name || 'Unknown',
@@ -337,6 +351,8 @@ export const searchJSearchAPI = async (filters) => {
           link: job.job_apply_link || job.job_google_link || '#',
           description: job.job_description?.substring(0, 300) || 'No description available',
           salary: salary,
+          employmentType: employmentType,
+          companyType: companyType,
           postingDate: postingDate,
           datePulled: format(new Date(), 'yyyy-MM-dd HH:mm:ss'),
           source: source
