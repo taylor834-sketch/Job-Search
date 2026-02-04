@@ -74,7 +74,18 @@ const normalizeSalary = (raw) => {
   let min = Math.min(...unique);
   let max = Math.max(...unique);
 
-  if (isHourly) { min = Math.round(min * 2080); max = Math.round(max * 2080); }
+  if (isHourly) {
+    min = Math.round(min * 2080);
+    max = Math.round(max * 2080);
+  } else {
+    // Not tagged hourly but values look like hourly rates ($10–$150) → annualise.
+    // Anything still under $5,000 after that is garbage (signing bonus, noise) → reject.
+    if (min >= 10 && min < 150) min = Math.round(min * 2080);
+    if (max >= 10 && max < 150) max = Math.round(max * 2080);
+    if (min < 5000 && max < 5000) return null;
+    if (min < 5000) min = max;
+    if (max < 5000) max = min;
+  }
 
   const fmt = (n) => '$' + Math.round(n).toLocaleString();
   const hasPlus = /\+/.test(text);
@@ -253,14 +264,39 @@ export const searchJSearchAPI = async (filters) => {
 
         // 1. Try API salary fields first
         if (job.job_min_salary || job.job_max_salary) {
-          const min = job.job_min_salary ? `$${Math.round(job.job_min_salary).toLocaleString()}` : '';
-          const max = job.job_max_salary ? `$${Math.round(job.job_max_salary).toLocaleString()}` : '';
-          if (min && max) {
-            salary = `${min} - ${max}`;
-          } else if (min) {
-            salary = `${min}+`;
-          } else if (max) {
-            salary = `Up to ${max}`;
+          let minVal = job.job_min_salary || null;
+          let maxVal = job.job_max_salary || null;
+
+          // Annualise based on job_salary_period (HOURLY / MONTHLY / YEARLY)
+          const period = (job.job_salary_period || '').toUpperCase();
+          if (period === 'HOURLY') {
+            if (minVal) minVal = Math.round(minVal * 2080);
+            if (maxVal) maxVal = Math.round(maxVal * 2080);
+          } else if (period === 'MONTHLY') {
+            if (minVal) minVal = Math.round(minVal * 12);
+            if (maxVal) maxVal = Math.round(maxVal * 12);
+          }
+          // If period is missing, guess: $10–$150 looks like an hourly rate, annualise it.
+          // Anything else under $5k after that is garbage — rejected by the sanity floor below.
+          if (!period) {
+            if (minVal && minVal >= 10 && minVal < 150) minVal = Math.round(minVal * 2080);
+            if (maxVal && maxVal >= 10 && maxVal < 150) maxVal = Math.round(maxVal * 2080);
+          }
+
+          // Sanity floor: reject if still under $5,000 (not a real annual salary)
+          if (minVal && minVal < 5000) minVal = null;
+          if (maxVal && maxVal < 5000) maxVal = null;
+
+          if (minVal || maxVal) {
+            const min = minVal ? `$${minVal.toLocaleString()}` : '';
+            const max = maxVal ? `$${maxVal.toLocaleString()}` : '';
+            if (min && max) {
+              salary = `${min} - ${max}`;
+            } else if (min) {
+              salary = `${min}+`;
+            } else if (max) {
+              salary = `Up to ${max}`;
+            }
           }
         }
 
