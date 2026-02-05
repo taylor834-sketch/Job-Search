@@ -194,6 +194,7 @@ export const searchJSearchAPI = async (filters) => {
     // Fetch multiple pages sequentially to get more results
     let jobs = [];
     let pagesRequested = 0;
+    let quotaError = null;
     const MAX_PAGES = 5;
     for (let page = 1; page <= MAX_PAGES; page++) {
       try {
@@ -204,6 +205,14 @@ export const searchJSearchAPI = async (filters) => {
           params: { ...baseParams, page: String(page) },
           headers
         });
+
+        // Check for quota exceeded message in response body (RapidAPI returns 200 with error message)
+        if (response.data.message && response.data.message.includes('exceeded')) {
+          console.error('JSearch API: Monthly quota exceeded (message in response)');
+          quotaError = response.data.message;
+          await recordApiCall(1, 'failure', 'quota_exceeded');
+          break;
+        }
 
         const pageJobs = response.data.data || [];
         if (pageJobs.length === 0) break; // No more results
@@ -219,8 +228,23 @@ export const searchJSearchAPI = async (filters) => {
       }
     }
 
+    // If we hit a quota error, return immediately with the error
+    if (quotaError) {
+      return {
+        jobs: [],
+        debug: {
+          error: quotaError,
+          apiReturned: 0,
+          isRemoteOnly: locationType?.includes('remote') && locationType.length === 1,
+          salaryFilter: { min: minSalary ?? null, max: maxSalary ?? null },
+          datePosted: datePosted || 'week',
+          query: jobTitle || 'software engineer'
+        }
+      };
+    }
+
     // Record successful API call with total pages requested
-    if (pagesRequested > 0) {
+    if (pagesRequested > 0 && !quotaError) {
       await recordApiCall(pagesRequested, 'success', null);
     }
 
