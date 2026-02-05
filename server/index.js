@@ -6,6 +6,7 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 import jobRoutes from './routes/jobRoutes.js';
 import { initializeSchedulers } from './utils/scheduler.js';
+import { initializeStorage } from './utils/database.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -17,6 +18,11 @@ dotenv.config({ path: path.resolve(__dirname, '..', '.env') });
 if (!process.env.JSEARCH_API_KEY) {
   console.warn('⚠️  JSEARCH_API_KEY is not set — job searches will return 0 results.');
   console.warn('    Create a .env file in the project root with your RapidAPI key.');
+}
+
+if (!process.env.GITHUB_TOKEN) {
+  console.warn('⚠️  GITHUB_TOKEN is not set — recurring searches will NOT persist across deployments.');
+  console.warn('    Set GITHUB_TOKEN in your environment for persistent storage.');
 }
 
 // Ensure the data directory exists so node-json-db can write its files
@@ -47,7 +53,12 @@ if (process.env.NODE_ENV === 'production') {
   });
 }
 
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`Server running on port ${PORT}`);
+
+  // Initialize storage (GitHub or local)
+  await initializeStorage();
+
+  // Start schedulers
   initializeSchedulers();
 });

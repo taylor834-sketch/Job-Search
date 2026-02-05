@@ -3,6 +3,15 @@ import { v4 as uuidv4 } from 'uuid';
 import { format, subDays, startOfMonth, endOfMonth, addMonths } from 'date-fns';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import {
+  isGitHubStorageConfigured,
+  getAllSavedSearchesFromGitHub,
+  getSavedSearchFromGitHub,
+  saveSearchToGitHub,
+  deleteSearchFromGitHub,
+  updateLastRunInGitHub,
+  initializeSearchesDirectory
+} from './githubStorage.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -13,7 +22,21 @@ const savedSearchesDB = new JsonDB(new Config(path.join(dataDir, 'savedSearches'
 const seenJobsDB = new JsonDB(new Config(path.join(dataDir, 'seenJobs'), true, false, '/'));
 const apiUsageDB = new JsonDB(new Config(path.join(dataDir, 'apiUsage'), true, false, '/'));
 
-// Saved Searches Management
+// Check if we should use GitHub storage (production) or local (development)
+const useGitHubStorage = () => isGitHubStorageConfigured();
+
+// Initialize storage on startup
+export const initializeStorage = async () => {
+  if (useGitHubStorage()) {
+    console.log('Using GitHub-based storage for recurring searches');
+    await initializeSearchesDirectory();
+  } else {
+    console.log('Using local file-based storage for recurring searches');
+    console.log('Note: Set GITHUB_TOKEN env var for persistent storage across deployments');
+  }
+};
+
+// Saved Searches Management - now with GitHub support
 export const saveSavedSearch = async (searchData) => {
   try {
     const searchId = uuidv4();
@@ -22,11 +45,16 @@ export const saveSavedSearch = async (searchData) => {
       ...searchData,
       createdAt: new Date().toISOString(),
       lastRun: null,
-      isActive: true
+      isActive: true,
+      runHistory: []
     };
 
-    await savedSearchesDB.push(`/searches/${searchId}`, search);
-    return search;
+    if (useGitHubStorage()) {
+      return await saveSearchToGitHub(search);
+    } else {
+      await savedSearchesDB.push(`/searches/${searchId}`, search);
+      return search;
+    }
   } catch (error) {
     console.error('Error saving search:', error);
     throw error;
@@ -35,7 +63,11 @@ export const saveSavedSearch = async (searchData) => {
 
 export const getSavedSearch = async (searchId) => {
   try {
-    return await savedSearchesDB.getData(`/searches/${searchId}`);
+    if (useGitHubStorage()) {
+      return await getSavedSearchFromGitHub(searchId);
+    } else {
+      return await savedSearchesDB.getData(`/searches/${searchId}`);
+    }
   } catch (error) {
     if (error.message.includes("Can't find dataPath")) {
       return null;
@@ -46,8 +78,12 @@ export const getSavedSearch = async (searchId) => {
 
 export const getAllSavedSearches = async () => {
   try {
-    const searches = await savedSearchesDB.getData('/searches');
-    return Object.values(searches);
+    if (useGitHubStorage()) {
+      return await getAllSavedSearchesFromGitHub();
+    } else {
+      const searches = await savedSearchesDB.getData('/searches');
+      return Object.values(searches);
+    }
   } catch (error) {
     if (error.message.includes("Can't find dataPath")) {
       return [];
@@ -58,7 +94,11 @@ export const getAllSavedSearches = async () => {
 
 export const updateLastRun = async (searchId) => {
   try {
-    await savedSearchesDB.push(`/searches/${searchId}/lastRun`, new Date().toISOString());
+    if (useGitHubStorage()) {
+      await updateLastRunInGitHub(searchId);
+    } else {
+      await savedSearchesDB.push(`/searches/${searchId}/lastRun`, new Date().toISOString());
+    }
   } catch (error) {
     console.error('Error updating last run:', error);
   }
@@ -66,8 +106,12 @@ export const updateLastRun = async (searchId) => {
 
 export const deleteSavedSearch = async (searchId) => {
   try {
-    await savedSearchesDB.delete(`/searches/${searchId}`);
-    return true;
+    if (useGitHubStorage()) {
+      return await deleteSearchFromGitHub(searchId);
+    } else {
+      await savedSearchesDB.delete(`/searches/${searchId}`);
+      return true;
+    }
   } catch (error) {
     console.error('Error deleting search:', error);
     return false;
@@ -76,8 +120,16 @@ export const deleteSavedSearch = async (searchId) => {
 
 export const toggleSearchActive = async (searchId, isActive) => {
   try {
-    await savedSearchesDB.push(`/searches/${searchId}/isActive`, isActive);
-    return true;
+    if (useGitHubStorage()) {
+      const search = await getSavedSearchFromGitHub(searchId);
+      if (!search) return false;
+      search.isActive = isActive;
+      await saveSearchToGitHub(search);
+      return true;
+    } else {
+      await savedSearchesDB.push(`/searches/${searchId}/isActive`, isActive);
+      return true;
+    }
   } catch (error) {
     console.error('Error toggling search:', error);
     return false;
@@ -86,37 +138,61 @@ export const toggleSearchActive = async (searchId, isActive) => {
 
 export const updateSavedSearch = async (searchId, updates) => {
   try {
-    // Verify the search exists first
-    const existing = await savedSearchesDB.getData(`/searches/${searchId}`);
-    if (!existing) return null;
+    if (useGitHubStorage()) {
+      const existing = await getSavedSearchFromGitHub(searchId);
+      if (!existing) return null;
 
-    // Apply only the allowed fields
-    if (updates.searchCriteria) {
-      await savedSearchesDB.push(`/searches/${searchId}/searchCriteria`, updates.searchCriteria);
-    }
-    if (updates.frequency) {
-      await savedSearchesDB.push(`/searches/${searchId}/frequency`, updates.frequency);
-      // If switching to daily, clear dayOfWeek
-      if (updates.frequency === 'daily') {
-        await savedSearchesDB.push(`/searches/${searchId}/dayOfWeek`, null);
+      // Apply updates
+      if (updates.searchCriteria) {
+        existing.searchCriteria = updates.searchCriteria;
       }
-    }
-    if (updates.dayOfWeek !== undefined) {
-      await savedSearchesDB.push(`/searches/${searchId}/dayOfWeek`, updates.dayOfWeek);
-    }
-    if (updates.userEmail !== undefined) {
-      await savedSearchesDB.push(`/searches/${searchId}/userEmail`, updates.userEmail || null);
-    }
+      if (updates.frequency) {
+        existing.frequency = updates.frequency;
+        if (updates.frequency === 'daily') {
+          existing.dayOfWeek = null;
+        }
+      }
+      if (updates.dayOfWeek !== undefined) {
+        existing.dayOfWeek = updates.dayOfWeek;
+      }
+      if (updates.userEmail !== undefined) {
+        existing.userEmail = updates.userEmail || null;
+      }
 
-    // Return the updated record
-    return await savedSearchesDB.getData(`/searches/${searchId}`);
+      return await saveSearchToGitHub(existing);
+    } else {
+      // Verify the search exists first
+      const existing = await savedSearchesDB.getData(`/searches/${searchId}`);
+      if (!existing) return null;
+
+      // Apply only the allowed fields
+      if (updates.searchCriteria) {
+        await savedSearchesDB.push(`/searches/${searchId}/searchCriteria`, updates.searchCriteria);
+      }
+      if (updates.frequency) {
+        await savedSearchesDB.push(`/searches/${searchId}/frequency`, updates.frequency);
+        // If switching to daily, clear dayOfWeek
+        if (updates.frequency === 'daily') {
+          await savedSearchesDB.push(`/searches/${searchId}/dayOfWeek`, null);
+        }
+      }
+      if (updates.dayOfWeek !== undefined) {
+        await savedSearchesDB.push(`/searches/${searchId}/dayOfWeek`, updates.dayOfWeek);
+      }
+      if (updates.userEmail !== undefined) {
+        await savedSearchesDB.push(`/searches/${searchId}/userEmail`, updates.userEmail || null);
+      }
+
+      // Return the updated record
+      return await savedSearchesDB.getData(`/searches/${searchId}`);
+    }
   } catch (error) {
     console.error('Error updating search:', error);
     throw error;
   }
 };
 
-// Seen Jobs Management
+// Seen Jobs Management (stays local - these are ephemeral and less critical)
 const createJobKey = (job) => {
   // Create unique key from title and company (normalized)
   const normalizedTitle = job.title.toLowerCase().replace(/[^\w\s]/g, '').trim();
@@ -204,7 +280,7 @@ export const filterJobsByPostingDate = (jobs, daysBack = 1) => {
   });
 };
 
-// API Usage Tracking
+// API Usage Tracking (stays local - not critical to persist)
 const getMonthKey = () => {
   const now = new Date();
   return format(now, 'yyyy-MM');
@@ -309,6 +385,9 @@ export const getApiUsageStats = async () => {
     // Check if API key is configured
     const hasApiKey = !!process.env.JSEARCH_API_KEY;
 
+    // Check if GitHub storage is configured
+    const hasGitHubStorage = useGitHubStorage();
+
     return {
       currentMonth: {
         ...currentMonth,
@@ -318,6 +397,7 @@ export const getApiUsageStats = async () => {
       daysUntilReset: Math.ceil((resetDate - now) / (1000 * 60 * 60 * 24)),
       recentCalls: recentCalls.slice(0, 10), // Last 10 calls for display
       hasApiKey,
+      hasGitHubStorage,
       // RapidAPI JSearch free tier limits (approximate - users should check their plan)
       estimatedLimit: {
         note: 'Check your RapidAPI dashboard for exact limits',
@@ -333,6 +413,7 @@ export const getApiUsageStats = async () => {
       daysUntilReset: 0,
       recentCalls: [],
       hasApiKey: !!process.env.JSEARCH_API_KEY,
+      hasGitHubStorage: useGitHubStorage(),
       estimatedLimit: { note: 'Unable to load usage data', freeRequests: 500, usedPercentage: 0 }
     };
   }
