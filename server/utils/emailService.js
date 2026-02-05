@@ -1,5 +1,6 @@
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
+import { generateExcelFile } from './excelExport.js';
 
 dotenv.config();
 
@@ -28,6 +29,10 @@ export const sendJobAlertEmail = async (recipientEmail, jobs, searchCriteria) =>
       recipients.push(recipientEmail);
     }
 
+    // Generate Excel file attachment
+    const excelBuffer = await generateExcelFile(jobs);
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+
     const jobsHtml = jobs.map((job, index) => `
       <div style="border: 1px solid #ddd; padding: 15px; margin-bottom: 15px; border-radius: 8px;">
         <h3 style="margin: 0 0 10px 0; color: #667eea;">${index + 1}. ${escapeHtml(job.title)}</h3>
@@ -41,8 +46,16 @@ export const sendJobAlertEmail = async (recipientEmail, jobs, searchCriteria) =>
       </div>
     `).join('');
 
+    // Support both old (jobTitle) and new (jobTitles) format for display
+    let jobTitlesDisplay = 'Any';
+    if (searchCriteria.jobTitles && Array.isArray(searchCriteria.jobTitles) && searchCriteria.jobTitles.length > 0) {
+      jobTitlesDisplay = searchCriteria.jobTitles.join(', ');
+    } else if (searchCriteria.jobTitle) {
+      jobTitlesDisplay = searchCriteria.jobTitle;
+    }
+
     const criteriaHtml = `
-      <p><strong>Job Title:</strong> ${escapeHtml(searchCriteria.jobTitle || 'Any')}</p>
+      <p><strong>Job Title${searchCriteria.jobTitles?.length > 1 ? 's' : ''}:</strong> ${escapeHtml(jobTitlesDisplay)}</p>
       ${searchCriteria.locationType?.length ? `<p><strong>Location Type:</strong> ${escapeHtml(searchCriteria.locationType.join(', '))}</p>` : ''}
       ${searchCriteria.employmentType && searchCriteria.employmentType !== 'all' ? `<p><strong>Employment Type:</strong> ${escapeHtml(searchCriteria.employmentType)}</p>` : ''}
       ${searchCriteria.minSalary || searchCriteria.maxSalary ? `<p><strong>Salary Range:</strong> $${Number(searchCriteria.minSalary || 0).toLocaleString()} - $${searchCriteria.maxSalary ? Number(searchCriteria.maxSalary).toLocaleString() : '∞'}</p>` : ''}
@@ -60,6 +73,12 @@ export const sendJobAlertEmail = async (recipientEmail, jobs, searchCriteria) =>
             <p style="margin: 10px 0 0 0;">We found ${jobs.length} new job${jobs.length !== 1 ? 's' : ''} matching your criteria!</p>
           </div>
 
+          <div style="padding: 20px; background: #e8f5e9; border-left: 4px solid #4CAF50;">
+            <p style="margin: 0; font-size: 14px;">
+              <strong>📎 Excel file attached!</strong> Open the attachment to see all ${jobs.length} jobs in a spreadsheet for easy filtering and tracking.
+            </p>
+          </div>
+
           <div style="padding: 20px; background: #f9f9f9;">
             <h2 style="color: #333;">Search Criteria</h2>
             ${criteriaHtml}
@@ -71,14 +90,21 @@ export const sendJobAlertEmail = async (recipientEmail, jobs, searchCriteria) =>
           </div>
 
           <div style="background: #f0f0f0; padding: 20px; text-align: center; border-radius: 0 0 10px 10px;">
-            <p style="margin: 0; color: #666;">This is an automated job alert from your Job Search Aggregator</p>
+            <p style="margin: 0; color: #666;">This is an automated job alert from Jobinator 3000</p>
           </div>
         </div>
-      `
+      `,
+      attachments: [
+        {
+          filename: `job-search-results-${today}.xlsx`,
+          content: excelBuffer,
+          contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        }
+      ]
     };
 
     await transporter.sendMail(mailOptions);
-    console.log(`Email sent to: ${recipients.join(', ')}`);
+    console.log(`Email sent to: ${recipients.join(', ')} with Excel attachment`);
     return true;
   } catch (error) {
     console.error('Error sending email:', error);
