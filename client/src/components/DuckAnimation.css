@@ -3,511 +3,425 @@
   top: 0;
   left: 0;
   right: 0;
-  height: 70px;
+  height: 80px;
   overflow: hidden;
   pointer-events: none;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
 }
 
-/* === THE DUCK (facing right) === */
-.duck {
+/* === PIXEL COLORS === */
+.pixel {
+  image-rendering: pixelated;
+}
+
+.pixel.yellow { background: #FFD93D; }
+.pixel.dark-yellow { background: #D4A800; }
+.pixel.orange { background: #FF8C00; }
+.pixel.black { background: #1a1a1a; }
+.pixel.brown { background: #8B6914; }
+.pixel.dark-brown { background: #3D2914; }
+.pixel.tan { background: #C4A574; }
+.pixel.green { background: #228B22; }
+
+/* === PIXEL DUCK === */
+.pixel-duck {
   position: absolute;
-  left: -60px;
-  bottom: 10px;
-  animation: duckWalk 10s linear infinite;
+  left: -50px;
+  bottom: 8px;
+  animation: duckWalkAndDive 12s linear infinite;
   z-index: 10;
 }
 
-@keyframes duckWalk {
+.duck-pixels {
+  display: grid;
+  grid-template-columns: repeat(7, 5px);
+  grid-template-rows: repeat(9, 5px);
+  gap: 0;
+  animation: waddle 0.3s steps(2) infinite;
+}
+
+/* Waddle animation for walking */
+@keyframes waddle {
+  0%, 100% { transform: rotate(-2deg) translateY(0); }
+  50% { transform: rotate(2deg) translateY(-1px); }
+}
+
+/* Duck legs walking animation */
+.leg-left, .foot-left {
+  animation: legWalkLeft 0.3s steps(2) infinite;
+}
+
+.leg-right, .foot-right {
+  animation: legWalkRight 0.3s steps(2) infinite;
+}
+
+@keyframes legWalkLeft {
+  0%, 100% { transform: translateX(-1px); }
+  50% { transform: translateX(1px); }
+}
+
+@keyframes legWalkRight {
+  0%, 100% { transform: translateX(1px); }
+  50% { transform: translateX(-1px); }
+}
+
+/* Main duck movement: walk across, then DIVE into bag (no fade!) */
+@keyframes duckWalkAndDive {
+  /* Start off screen */
   0% {
-    left: -60px;
-    bottom: 10px;
-    transform: translateY(0);
+    left: -50px;
+    bottom: 8px;
+    transform: rotate(0deg);
   }
-  /* Slow waddle across */
-  65% {
-    left: calc(100% - 120px);
-    bottom: 10px;
-    transform: translateY(0);
+  /* Waddle across slowly */
+  55% {
+    left: calc(100% - 130px);
+    bottom: 8px;
+    transform: rotate(0deg);
   }
-  /* Pause at bag */
-  70% {
-    left: calc(100% - 120px);
-    bottom: 10px;
-    transform: translateY(0);
+  /* Pause and prepare to jump */
+  60% {
+    left: calc(100% - 130px);
+    bottom: 8px;
+    transform: rotate(0deg);
   }
-  /* Jump up */
-  78% {
-    left: calc(100% - 100px);
-    bottom: 50px;
-    transform: translateY(0) rotate(15deg);
+  /* Jump UP */
+  68% {
+    left: calc(100% - 110px);
+    bottom: 55px;
+    transform: rotate(-15deg);
   }
-  /* Dive into bag */
+  /* Arc over - peak of jump */
+  74% {
+    left: calc(100% - 85px);
+    bottom: 60px;
+    transform: rotate(15deg);
+  }
+  /* Diving down - tucked position */
+  80% {
+    left: calc(100% - 70px);
+    bottom: 45px;
+    transform: rotate(70deg);
+  }
+  /* Head first into bag */
   85% {
-    left: calc(100% - 85px);
-    bottom: 20px;
-    transform: translateY(0) rotate(30deg);
+    left: calc(100% - 65px);
+    bottom: 30px;
+    transform: rotate(90deg);
   }
-  /* Disappear into bag */
-  88%, 100% {
-    left: calc(100% - 85px);
+  /* Duck goes INTO the bag (behind it via z-index change happens with clip) */
+  88% {
+    left: calc(100% - 62px);
+    bottom: 15px;
+    transform: rotate(90deg);
+    clip-path: inset(0 0 0 0);
+  }
+  /* Duck body disappearing into bag opening */
+  91% {
+    left: calc(100% - 60px);
+    bottom: 5px;
+    transform: rotate(90deg);
+    clip-path: inset(50% 0 0 0);
+  }
+  /* Fully inside bag */
+  94% {
+    left: calc(100% - 60px);
     bottom: -10px;
-    transform: translateY(0) rotate(30deg);
-    opacity: 0;
+    transform: rotate(90deg);
+    clip-path: inset(100% 0 0 0);
+  }
+  /* Stay hidden, then reset */
+  94.1%, 100% {
+    left: calc(100% - 60px);
+    bottom: -10px;
+    transform: rotate(90deg);
+    clip-path: inset(100% 0 0 0);
   }
 }
 
-/* Duck body - pixel art style, facing RIGHT */
-.duck-body {
-  width: 36px;
-  height: 28px;
-  background: #FFD93D;
-  border-radius: 45% 50% 50% 45%;
-  position: relative;
-  box-shadow:
-    inset 3px -3px 0 #E6C235,
-    2px 2px 0 rgba(0,0,0,0.1);
-  image-rendering: pixelated;
-  animation: bodyWaddle 0.5s ease-in-out infinite;
-}
-
-@keyframes bodyWaddle {
-  0%, 100% { transform: rotate(-2deg); }
-  50% { transform: rotate(2deg); }
-}
-
-.duck-head {
+/* === PIXEL MONEY BAG === */
+.pixel-money-bag {
   position: absolute;
-  width: 20px;
-  height: 18px;
-  background: #FFD93D;
-  border-radius: 50%;
-  top: -6px;
-  right: -6px;
-  box-shadow: inset 2px -2px 0 #E6C235;
-}
-
-.duck-eye {
-  position: absolute;
-  width: 6px;
-  height: 6px;
-  background: #1a1a1a;
-  border-radius: 50%;
-  top: 5px;
-  right: 4px;
-  box-shadow: 1px 1px 0 rgba(255,255,255,0.5) inset;
-}
-
-/* Beak facing right */
-.duck-beak {
-  position: absolute;
-  width: 12px;
-  height: 7px;
-  background: #FF8C00;
-  border-radius: 50% 50% 50% 0;
-  top: 9px;
-  right: -10px;
-  box-shadow: inset 1px -1px 0 #E67300;
-}
-
-.duck-wing {
-  position: absolute;
-  width: 16px;
-  height: 14px;
-  background: #E6C235;
-  border-radius: 50%;
-  top: 8px;
-  left: 6px;
-  animation: wingFlap 0.4s ease-in-out infinite;
-}
-
-@keyframes wingFlap {
-  0%, 100% { transform: rotate(0deg) scaleY(1); }
-  50% { transform: rotate(5deg) scaleY(0.9); }
-}
-
-/* Duck legs - animated walking */
-.duck-legs {
-  position: absolute;
-  bottom: -10px;
-  left: 10px;
-  width: 20px;
-  height: 12px;
-}
-
-.duck-leg {
-  position: absolute;
-  width: 5px;
-  height: 10px;
-  background: #FF8C00;
+  right: 20px;
   bottom: 0;
-  border-radius: 0 0 2px 2px;
-}
-
-.duck-leg::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 10px;
-  height: 4px;
-  background: #FF8C00;
-  border-radius: 2px;
-}
-
-.duck-leg.left {
-  left: 0;
-  animation: legLeft 0.25s ease-in-out infinite;
-}
-
-.duck-leg.right {
-  right: 0;
-  animation: legRight 0.25s ease-in-out infinite;
-}
-
-@keyframes legLeft {
-  0%, 100% { transform: rotate(-25deg); }
-  50% { transform: rotate(25deg); }
-}
-
-@keyframes legRight {
-  0%, 100% { transform: rotate(25deg); }
-  50% { transform: rotate(-25deg); }
-}
-
-/* === MONEY BAG === */
-.money-bag {
-  position: absolute;
-  right: 25px;
-  bottom: 0;
-  width: 90px;
+  width: 60px;
   height: 70px;
   z-index: 5;
 }
 
-/* Bag body */
-.bag-body {
+.bag-pixels {
+  display: grid;
+  grid-template-columns: repeat(9, 6px);
+  grid-template-rows: repeat(8, 6px);
+  gap: 0;
   position: absolute;
-  bottom: 0;
+  bottom: 4px;
   left: 50%;
   transform: translateX(-50%);
-  width: 80px;
-  height: 55px;
-  background: linear-gradient(135deg, #8B6914 0%, #6B4F0F 50%, #4A3508 100%);
-  border-radius: 10px 10px 20px 20px;
-  box-shadow:
-    inset -5px -5px 15px rgba(0,0,0,0.3),
-    inset 5px 5px 10px rgba(255,255,255,0.1),
-    3px 3px 8px rgba(0,0,0,0.4);
+  animation: bagShake 12s linear infinite;
 }
 
-/* Bag tie/knot at top */
-.bag-tie {
+/* Pixelated dollar sign on bag */
+.bag-dollar-text {
   position: absolute;
-  bottom: 50px;
+  bottom: 18px;
   left: 50%;
   transform: translateX(-50%);
-  width: 30px;
-  height: 18px;
-  background: linear-gradient(135deg, #A67C00 0%, #8B6914 100%);
-  border-radius: 50% 50% 10% 10%;
-  box-shadow: inset -2px -2px 5px rgba(0,0,0,0.3);
-}
-
-/* Bag opening at very top */
-.bag-opening {
-  position: absolute;
-  bottom: 62px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 40px;
-  height: 12px;
-  background: #2a1a00;
-  border-radius: 50%;
-  box-shadow: inset 0 3px 5px rgba(0,0,0,0.5);
-}
-
-/* Dollar sign on bag */
-.bag-dollar {
-  position: absolute;
-  bottom: 15px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 28px;
+  font-family: 'Courier New', monospace;
+  font-size: 22px;
   font-weight: 900;
-  color: #2E7D32;
+  color: #228B22;
   text-shadow:
-    1px 1px 0 #1B5E20,
-    -1px -1px 0 #4CAF50,
-    2px 2px 4px rgba(0,0,0,0.3);
-  font-family: 'Arial Black', sans-serif;
-}
-
-/* === SPLASH EFFECTS === */
-.splash-container {
-  position: absolute;
-  bottom: 45px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 100px;
-  height: 60px;
-  opacity: 0;
-  animation: showSplash 10s linear infinite;
-}
-
-@keyframes showSplash {
-  0%, 82% { opacity: 0; }
-  83% { opacity: 1; }
-  95% { opacity: 1; }
-  100% { opacity: 0; }
-}
-
-/* Flying dollar bills */
-.money-bill {
-  position: absolute;
-  width: 20px;
-  height: 10px;
-  background: linear-gradient(90deg, #85bb65 0%, #2E7D32 50%, #85bb65 100%);
-  border: 1px solid #1B5E20;
-  border-radius: 2px;
-  opacity: 0;
-  animation: flyMoney 10s linear infinite;
-}
-
-.money-bill::after {
-  content: '$';
-  position: absolute;
-  font-size: 6px;
-  color: #1B5E20;
-  font-weight: bold;
-  top: 1px;
-  left: 7px;
-}
-
-.money-bill.bill-1 {
-  left: 20px;
-  animation-delay: 0s;
-}
-
-.money-bill.bill-2 {
-  left: 50px;
-  animation-delay: 0.1s;
-}
-
-.money-bill.bill-3 {
-  left: 35px;
-  animation-delay: 0.05s;
-}
-
-@keyframes flyMoney {
-  0%, 82% {
-    opacity: 0;
-    transform: translate(0, 0) rotate(0deg);
-  }
-  83% {
-    opacity: 1;
-    transform: translate(0, 0) rotate(0deg);
-  }
-  95% {
-    opacity: 0;
-    transform: translate(var(--fly-x, -20px), -50px) rotate(var(--fly-rot, -180deg));
-  }
-  100% {
-    opacity: 0;
-  }
-}
-
-.money-bill.bill-1 { --fly-x: -30px; --fly-rot: -200deg; }
-.money-bill.bill-2 { --fly-x: 30px; --fly-rot: 180deg; }
-.money-bill.bill-3 { --fly-x: 0px; --fly-rot: -150deg; }
-
-/* Flying dollar signs */
-.splash-dollar {
-  position: absolute;
-  font-size: 16px;
-  font-weight: 900;
-  color: #4CAF50;
-  text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
-  opacity: 0;
-  animation: flyDollar 10s linear infinite;
-}
-
-.splash-dollar.dollar-1 {
-  left: 10px;
-  --fly-x: -25px;
-  --fly-y: -40px;
-  animation-delay: 0s;
-}
-
-.splash-dollar.dollar-2 {
-  left: 45px;
-  --fly-x: 5px;
-  --fly-y: -55px;
-  animation-delay: 0.08s;
-}
-
-.splash-dollar.dollar-3 {
-  left: 75px;
-  --fly-x: 25px;
-  --fly-y: -35px;
-  animation-delay: 0.04s;
-}
-
-.splash-dollar.dollar-4 {
-  left: 30px;
-  --fly-x: -10px;
-  --fly-y: -60px;
-  animation-delay: 0.12s;
-}
-
-.splash-dollar.dollar-5 {
-  left: 60px;
-  --fly-x: 15px;
-  --fly-y: -45px;
-  animation-delay: 0.06s;
-}
-
-@keyframes flyDollar {
-  0%, 82% {
-    opacity: 0;
-    transform: translate(0, 0) scale(0.5);
-  }
-  83% {
-    opacity: 1;
-    transform: translate(0, 0) scale(1);
-  }
-  92% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-    transform: translate(var(--fly-x), var(--fly-y)) scale(0.3);
-  }
-}
-
-/* Floating coins */
-.splash-coin {
-  position: absolute;
-  width: 14px;
-  height: 14px;
-  background: radial-gradient(circle at 30% 30%, #FFD700, #B8860B);
-  border-radius: 50%;
-  border: 2px solid #996515;
-  opacity: 0;
-  animation: flyCoin 10s linear infinite;
-  box-shadow: inset -2px -2px 4px rgba(0,0,0,0.3);
-}
-
-.splash-coin::after {
-  content: '$';
-  position: absolute;
-  font-size: 8px;
-  font-weight: bold;
-  color: #996515;
-  top: 1px;
-  left: 3px;
-}
-
-.splash-coin.coin-1 {
-  left: 15px;
-  --coin-x: -35px;
-  --coin-y: -30px;
-  --coin-rot: -360deg;
-}
-
-.splash-coin.coin-2 {
-  left: 70px;
-  --coin-x: 35px;
-  --coin-y: -40px;
-  --coin-rot: 360deg;
-}
-
-.splash-coin.coin-3 {
-  left: 40px;
-  --coin-x: 0px;
-  --coin-y: -50px;
-  --coin-rot: -270deg;
-}
-
-@keyframes flyCoin {
-  0%, 82% {
-    opacity: 0;
-    transform: translate(0, 0) rotate(0deg);
-  }
-  83% {
-    opacity: 1;
-    transform: translate(0, 0) rotate(0deg);
-  }
-  95% {
-    opacity: 0.8;
-  }
-  100% {
-    opacity: 0;
-    transform: translate(var(--coin-x), var(--coin-y)) rotate(var(--coin-rot));
-  }
+    2px 0 0 #145214,
+    -2px 0 0 #145214,
+    0 2px 0 #145214,
+    0 -2px 0 #145214;
+  image-rendering: pixelated;
 }
 
 /* Bag shake when duck lands */
-.bag-body, .bag-tie, .bag-dollar {
-  animation: bagShake 10s linear infinite;
-}
-
 @keyframes bagShake {
-  0%, 82%, 90%, 100% { transform: translateX(-50%) rotate(0deg); }
-  84% { transform: translateX(-50%) rotate(-3deg); }
-  86% { transform: translateX(-50%) rotate(3deg); }
-  88% { transform: translateX(-50%) rotate(-2deg); }
+  0%, 84%, 100% { transform: translateX(-50%) rotate(0deg); }
+  86% { transform: translateX(-50%) rotate(-5deg) scale(1.05); }
+  88% { transform: translateX(-50%) rotate(5deg) scale(1.05); }
+  90% { transform: translateX(-50%) rotate(-3deg) scale(1.02); }
+  92% { transform: translateX(-50%) rotate(2deg); }
+  94% { transform: translateX(-50%) rotate(0deg); }
 }
 
-.bag-body {
-  animation-name: bagBodyShake;
+/* === SPLASH EFFECTS === */
+.splash-effects {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 120px;
+  height: 80px;
+  pointer-events: none;
 }
 
-@keyframes bagBodyShake {
-  0%, 82%, 90%, 100% { transform: translateX(-50%) rotate(0deg) scale(1); }
-  84% { transform: translateX(-50%) rotate(-3deg) scale(1.02); }
-  86% { transform: translateX(-50%) rotate(3deg) scale(1.02); }
-  88% { transform: translateX(-50%) rotate(-2deg) scale(1.01); }
+/* Pixel-style dollar bills */
+.pixel-bill {
+  position: absolute;
+  width: 18px;
+  height: 10px;
+  background: #85bb65;
+  border: 2px solid #228B22;
+  opacity: 0;
+  image-rendering: pixelated;
+}
+
+.pixel-bill span {
+  position: absolute;
+  font-size: 8px;
+  font-weight: bold;
+  color: #145214;
+  top: 0;
+  left: 5px;
+  font-family: 'Courier New', monospace;
+}
+
+.pixel-bill.bill-1 {
+  left: 30px;
+  top: 20px;
+  animation: flyBill1 12s linear infinite;
+}
+
+.pixel-bill.bill-2 {
+  left: 60px;
+  top: 25px;
+  animation: flyBill2 12s linear infinite;
+}
+
+.pixel-bill.bill-3 {
+  left: 45px;
+  top: 15px;
+  animation: flyBill3 12s linear infinite;
+}
+
+@keyframes flyBill1 {
+  0%, 85% { opacity: 0; transform: translate(0, 0) rotate(0deg); }
+  86% { opacity: 1; transform: translate(0, 0) rotate(0deg); }
+  100% { opacity: 0; transform: translate(-50px, -60px) rotate(-180deg); }
+}
+
+@keyframes flyBill2 {
+  0%, 86% { opacity: 0; transform: translate(0, 0) rotate(0deg); }
+  87% { opacity: 1; transform: translate(0, 0) rotate(0deg); }
+  100% { opacity: 0; transform: translate(40px, -70px) rotate(200deg); }
+}
+
+@keyframes flyBill3 {
+  0%, 85.5% { opacity: 0; transform: translate(0, 0) rotate(0deg); }
+  86.5% { opacity: 1; transform: translate(0, 0) rotate(0deg); }
+  100% { opacity: 0; transform: translate(10px, -80px) rotate(-150deg); }
+}
+
+/* Pixel-style coins */
+.pixel-coin {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: #FFD700;
+  border: 2px solid #B8860B;
+  opacity: 0;
+  image-rendering: pixelated;
+}
+
+.pixel-coin.coin-1 {
+  left: 25px;
+  top: 30px;
+  animation: flyCoin1 12s linear infinite;
+}
+
+.pixel-coin.coin-2 {
+  left: 75px;
+  top: 25px;
+  animation: flyCoin2 12s linear infinite;
+}
+
+.pixel-coin.coin-3 {
+  left: 50px;
+  top: 20px;
+  animation: flyCoin3 12s linear infinite;
+}
+
+.pixel-coin.coin-4 {
+  left: 40px;
+  top: 35px;
+  animation: flyCoin4 12s linear infinite;
+}
+
+@keyframes flyCoin1 {
+  0%, 85% { opacity: 0; transform: translate(0, 0) rotate(0deg); }
+  86% { opacity: 1; transform: translate(0, 0) rotate(0deg); }
+  100% { opacity: 0; transform: translate(-40px, -50px) rotate(-360deg); }
+}
+
+@keyframes flyCoin2 {
+  0%, 86% { opacity: 0; transform: translate(0, 0) rotate(0deg); }
+  87% { opacity: 1; transform: translate(0, 0) rotate(0deg); }
+  100% { opacity: 0; transform: translate(35px, -55px) rotate(360deg); }
+}
+
+@keyframes flyCoin3 {
+  0%, 85.5% { opacity: 0; transform: translate(0, 0) rotate(0deg); }
+  86.5% { opacity: 1; transform: translate(0, 0) rotate(0deg); }
+  100% { opacity: 0; transform: translate(5px, -70px) rotate(-270deg); }
+}
+
+@keyframes flyCoin4 {
+  0%, 86.5% { opacity: 0; transform: translate(0, 0) rotate(0deg); }
+  87.5% { opacity: 1; transform: translate(0, 0) rotate(0deg); }
+  100% { opacity: 0; transform: translate(-25px, -45px) rotate(180deg); }
+}
+
+/* Pixel-style flying dollar signs */
+.pixel-dollar-sign {
+  position: absolute;
+  font-family: 'Courier New', monospace;
+  font-size: 16px;
+  font-weight: 900;
+  color: #32CD32;
+  opacity: 0;
+  text-shadow:
+    1px 0 0 #228B22,
+    -1px 0 0 #228B22,
+    0 1px 0 #228B22,
+    0 -1px 0 #228B22;
+  image-rendering: pixelated;
+}
+
+.pixel-dollar-sign.ds-1 {
+  left: 20px;
+  top: 25px;
+  animation: flyDollar1 12s linear infinite;
+}
+
+.pixel-dollar-sign.ds-2 {
+  left: 55px;
+  top: 15px;
+  animation: flyDollar2 12s linear infinite;
+}
+
+.pixel-dollar-sign.ds-3 {
+  left: 80px;
+  top: 30px;
+  animation: flyDollar3 12s linear infinite;
+}
+
+.pixel-dollar-sign.ds-4 {
+  left: 35px;
+  top: 10px;
+  animation: flyDollar4 12s linear infinite;
+}
+
+.pixel-dollar-sign.ds-5 {
+  left: 65px;
+  top: 35px;
+  animation: flyDollar5 12s linear infinite;
+}
+
+@keyframes flyDollar1 {
+  0%, 85% { opacity: 0; transform: translate(0, 0) scale(0.5); }
+  86% { opacity: 1; transform: translate(0, 0) scale(1.2); }
+  88% { opacity: 1; transform: translate(-10px, -15px) scale(1); }
+  100% { opacity: 0; transform: translate(-35px, -55px) scale(0.5); }
+}
+
+@keyframes flyDollar2 {
+  0%, 85.5% { opacity: 0; transform: translate(0, 0) scale(0.5); }
+  86.5% { opacity: 1; transform: translate(0, 0) scale(1.3); }
+  89% { opacity: 1; transform: translate(5px, -20px) scale(1); }
+  100% { opacity: 0; transform: translate(15px, -65px) scale(0.4); }
+}
+
+@keyframes flyDollar3 {
+  0%, 86% { opacity: 0; transform: translate(0, 0) scale(0.5); }
+  87% { opacity: 1; transform: translate(0, 0) scale(1.1); }
+  90% { opacity: 1; transform: translate(15px, -25px) scale(1); }
+  100% { opacity: 0; transform: translate(40px, -50px) scale(0.5); }
+}
+
+@keyframes flyDollar4 {
+  0%, 86.5% { opacity: 0; transform: translate(0, 0) scale(0.5); }
+  87.5% { opacity: 1; transform: translate(0, 0) scale(1.4); }
+  90% { opacity: 1; transform: translate(-5px, -30px) scale(1); }
+  100% { opacity: 0; transform: translate(-20px, -75px) scale(0.3); }
+}
+
+@keyframes flyDollar5 {
+  0%, 87% { opacity: 0; transform: translate(0, 0) scale(0.5); }
+  88% { opacity: 1; transform: translate(0, 0) scale(1.2); }
+  91% { opacity: 1; transform: translate(10px, -20px) scale(1); }
+  100% { opacity: 0; transform: translate(30px, -45px) scale(0.6); }
 }
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .duck-scene {
-    height: 60px;
+    height: 65px;
   }
 
-  .duck-body {
-    width: 28px;
-    height: 22px;
+  .duck-pixels {
+    grid-template-columns: repeat(7, 4px);
+    grid-template-rows: repeat(9, 4px);
   }
 
-  .duck-head {
-    width: 16px;
-    height: 14px;
-    top: -4px;
+  .bag-pixels {
+    grid-template-columns: repeat(9, 5px);
+    grid-template-rows: repeat(8, 5px);
   }
 
-  .duck-eye {
-    width: 5px;
-    height: 5px;
+  .bag-dollar-text {
+    font-size: 18px;
+    bottom: 15px;
   }
 
-  .duck-beak {
-    width: 10px;
-    height: 6px;
-  }
-
-  .money-bag {
-    width: 70px;
+  .pixel-money-bag {
     right: 15px;
-  }
-
-  .bag-body {
-    width: 60px;
-    height: 45px;
-  }
-
-  .bag-dollar {
-    font-size: 20px;
+    width: 50px;
   }
 }
 
