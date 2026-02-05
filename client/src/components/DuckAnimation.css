@@ -3,128 +3,141 @@
   top: 0;
   left: 0;
   right: 0;
-  height: 60px;
+  height: 70px;
   overflow: hidden;
   pointer-events: none;
 }
 
-/* === THE DUCK === */
+/* === THE DUCK (facing right) === */
 .duck {
   position: absolute;
   left: -60px;
-  bottom: 8px;
-  animation: duckWalk 8s linear infinite;
+  bottom: 10px;
+  animation: duckWalk 10s linear infinite;
   z-index: 10;
 }
 
 @keyframes duckWalk {
   0% {
     left: -60px;
-    bottom: 8px;
+    bottom: 10px;
     transform: translateY(0);
   }
-  /* Walking across */
+  /* Slow waddle across */
+  65% {
+    left: calc(100% - 120px);
+    bottom: 10px;
+    transform: translateY(0);
+  }
+  /* Pause at bag */
   70% {
-    left: calc(100% - 100px);
-    bottom: 8px;
+    left: calc(100% - 120px);
+    bottom: 10px;
     transform: translateY(0);
   }
   /* Jump up */
   78% {
-    left: calc(100% - 70px);
-    bottom: 35px;
-    transform: translateY(0) rotate(-15deg);
+    left: calc(100% - 100px);
+    bottom: 50px;
+    transform: translateY(0) rotate(15deg);
   }
-  /* Dive down into pool */
+  /* Dive into bag */
   85% {
-    left: calc(100% - 55px);
-    bottom: 5px;
-    transform: translateY(0) rotate(25deg);
+    left: calc(100% - 85px);
+    bottom: 20px;
+    transform: translateY(0) rotate(30deg);
   }
-  /* Splash - duck disappears */
-  86%, 100% {
-    left: calc(100% - 55px);
-    bottom: -30px;
-    transform: translateY(0) rotate(25deg);
+  /* Disappear into bag */
+  88%, 100% {
+    left: calc(100% - 85px);
+    bottom: -10px;
+    transform: translateY(0) rotate(30deg);
     opacity: 0;
   }
 }
 
-/* Duck body - pixel art style */
+/* Duck body - pixel art style, facing RIGHT */
 .duck-body {
-  width: 32px;
-  height: 24px;
+  width: 36px;
+  height: 28px;
   background: #FFD93D;
-  border-radius: 50% 50% 45% 45%;
+  border-radius: 45% 50% 50% 45%;
   position: relative;
   box-shadow:
-    inset -3px -3px 0 #E6C235,
+    inset 3px -3px 0 #E6C235,
     2px 2px 0 rgba(0,0,0,0.1);
   image-rendering: pixelated;
+  animation: bodyWaddle 0.5s ease-in-out infinite;
+}
+
+@keyframes bodyWaddle {
+  0%, 100% { transform: rotate(-2deg); }
+  50% { transform: rotate(2deg); }
 }
 
 .duck-head {
   position: absolute;
-  width: 18px;
-  height: 16px;
+  width: 20px;
+  height: 18px;
   background: #FFD93D;
   border-radius: 50%;
-  top: -8px;
-  left: -4px;
-  box-shadow: inset -2px -2px 0 #E6C235;
+  top: -6px;
+  right: -6px;
+  box-shadow: inset 2px -2px 0 #E6C235;
 }
 
 .duck-eye {
   position: absolute;
-  width: 5px;
-  height: 5px;
+  width: 6px;
+  height: 6px;
   background: #1a1a1a;
   border-radius: 50%;
-  top: 4px;
-  left: 3px;
+  top: 5px;
+  right: 4px;
   box-shadow: 1px 1px 0 rgba(255,255,255,0.5) inset;
 }
 
+/* Beak facing right */
 .duck-beak {
   position: absolute;
-  width: 10px;
-  height: 6px;
+  width: 12px;
+  height: 7px;
   background: #FF8C00;
-  border-radius: 0 50% 50% 0;
-  top: 8px;
-  left: -8px;
-  box-shadow: inset -1px -1px 0 #E67300;
+  border-radius: 50% 50% 50% 0;
+  top: 9px;
+  right: -10px;
+  box-shadow: inset 1px -1px 0 #E67300;
 }
 
 .duck-wing {
   position: absolute;
-  width: 14px;
-  height: 12px;
+  width: 16px;
+  height: 14px;
   background: #E6C235;
   border-radius: 50%;
-  top: 6px;
-  right: 4px;
-  animation: wingFlap 0.3s ease-in-out infinite;
+  top: 8px;
+  left: 6px;
+  animation: wingFlap 0.4s ease-in-out infinite;
 }
 
 @keyframes wingFlap {
-  0%, 100% { transform: rotate(0deg); }
-  50% { transform: rotate(-10deg); }
+  0%, 100% { transform: rotate(0deg) scaleY(1); }
+  50% { transform: rotate(5deg) scaleY(0.9); }
 }
 
 /* Duck legs - animated walking */
 .duck-legs {
   position: absolute;
-  bottom: -8px;
-  left: 8px;
-  width: 16px;
-  height: 10px;
+  bottom: -10px;
+  left: 10px;
+  width: 20px;
+  height: 12px;
 }
 
 .duck-leg {
   position: absolute;
-  width: 4px;
-  height: 8px;
+  width: 5px;
+  height: 10px;
   background: #FF8C00;
   bottom: 0;
   border-radius: 0 0 2px 2px;
@@ -134,195 +147,367 @@
   content: '';
   position: absolute;
   bottom: 0;
-  left: -2px;
-  width: 8px;
-  height: 3px;
+  left: 0;
+  width: 10px;
+  height: 4px;
   background: #FF8C00;
   border-radius: 2px;
 }
 
 .duck-leg.left {
-  left: 2px;
+  left: 0;
   animation: legLeft 0.25s ease-in-out infinite;
 }
 
 .duck-leg.right {
-  right: 2px;
+  right: 0;
   animation: legRight 0.25s ease-in-out infinite;
 }
 
 @keyframes legLeft {
-  0%, 100% { transform: rotate(-20deg); }
-  50% { transform: rotate(20deg); }
+  0%, 100% { transform: rotate(-25deg); }
+  50% { transform: rotate(25deg); }
 }
 
 @keyframes legRight {
-  0%, 100% { transform: rotate(20deg); }
-  50% { transform: rotate(-20deg); }
+  0%, 100% { transform: rotate(25deg); }
+  50% { transform: rotate(-25deg); }
 }
 
-/* === MONEY POOL === */
-.money-pool {
+/* === MONEY BAG === */
+.money-bag {
   position: absolute;
-  right: 20px;
+  right: 25px;
   bottom: 0;
+  width: 90px;
+  height: 70px;
+  z-index: 5;
+}
+
+/* Bag body */
+.bag-body {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
   width: 80px;
-  height: 30px;
-}
-
-.money-surface {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 20px;
-  background: linear-gradient(to bottom, #4ADE80 0%, #22C55E 50%, #16A34A 100%);
-  border-radius: 50%;
+  height: 55px;
+  background: linear-gradient(135deg, #8B6914 0%, #6B4F0F 50%, #4A3508 100%);
+  border-radius: 10px 10px 20px 20px;
   box-shadow:
-    inset 0 5px 15px rgba(255,255,255,0.3),
-    0 2px 4px rgba(0,0,0,0.2);
+    inset -5px -5px 15px rgba(0,0,0,0.3),
+    inset 5px 5px 10px rgba(255,255,255,0.1),
+    3px 3px 8px rgba(0,0,0,0.4);
 }
 
-.money-wave {
+/* Bag tie/knot at top */
+.bag-tie {
   position: absolute;
-  bottom: 10px;
-  left: 10%;
-  width: 80%;
-  height: 8px;
-  background: linear-gradient(90deg,
-    transparent 0%,
-    rgba(255,255,255,0.4) 25%,
-    rgba(255,255,255,0.4) 75%,
-    transparent 100%
-  );
+  bottom: 50px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 30px;
+  height: 18px;
+  background: linear-gradient(135deg, #A67C00 0%, #8B6914 100%);
+  border-radius: 50% 50% 10% 10%;
+  box-shadow: inset -2px -2px 5px rgba(0,0,0,0.3);
+}
+
+/* Bag opening at very top */
+.bag-opening {
+  position: absolute;
+  bottom: 62px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 40px;
+  height: 12px;
+  background: #2a1a00;
   border-radius: 50%;
-  animation: waveMove 1.5s ease-in-out infinite;
+  box-shadow: inset 0 3px 5px rgba(0,0,0,0.5);
 }
 
-@keyframes waveMove {
-  0%, 100% { transform: translateX(-5px) scaleX(0.9); }
-  50% { transform: translateX(5px) scaleX(1.1); }
-}
-
-/* Floating coins */
-.coin {
-  position: absolute;
-  font-size: 12px;
-  font-weight: bold;
-  color: #FCD34D;
-  text-shadow: 1px 1px 0 #B8860B;
-  animation: coinFloat 2s ease-in-out infinite;
-}
-
-.coin-1 {
-  bottom: 12px;
-  left: 15px;
-  animation-delay: 0s;
-}
-
-.coin-2 {
-  bottom: 15px;
-  left: 40px;
-  animation-delay: 0.5s;
-}
-
-.coin-3 {
-  bottom: 10px;
-  right: 15px;
-  animation-delay: 1s;
-}
-
-@keyframes coinFloat {
-  0%, 100% { transform: translateY(0) rotate(0deg); }
-  50% { transform: translateY(-4px) rotate(10deg); }
-}
-
-/* Splash effect - appears when duck dives */
-.money-splash {
+/* Dollar sign on bag */
+.bag-dollar {
   position: absolute;
   bottom: 15px;
   left: 50%;
   transform: translateX(-50%);
-  width: 40px;
-  height: 30px;
-  opacity: 0;
-  animation: splashEffect 8s linear infinite;
+  font-size: 28px;
+  font-weight: 900;
+  color: #2E7D32;
+  text-shadow:
+    1px 1px 0 #1B5E20,
+    -1px -1px 0 #4CAF50,
+    2px 2px 4px rgba(0,0,0,0.3);
+  font-family: 'Arial Black', sans-serif;
 }
 
-.money-splash::before,
-.money-splash::after {
-  content: '$';
+/* === SPLASH EFFECTS === */
+.splash-container {
   position: absolute;
-  font-size: 10px;
-  font-weight: bold;
-  color: #4ADE80;
+  bottom: 45px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100px;
+  height: 60px;
+  opacity: 0;
+  animation: showSplash 10s linear infinite;
 }
 
-.money-splash::before {
-  left: 5px;
-  animation: splashLeft 8s linear infinite;
-}
-
-.money-splash::after {
-  right: 5px;
-  animation: splashRight 8s linear infinite;
-}
-
-@keyframes splashEffect {
+@keyframes showSplash {
   0%, 82% { opacity: 0; }
   83% { opacity: 1; }
   95% { opacity: 1; }
   100% { opacity: 0; }
 }
 
-@keyframes splashLeft {
-  0%, 82% { transform: translate(0, 0); opacity: 0; }
-  83% { transform: translate(0, 0); opacity: 1; }
-  95% { transform: translate(-15px, -20px); opacity: 0; }
-  100% { transform: translate(-15px, -20px); opacity: 0; }
+/* Flying dollar bills */
+.money-bill {
+  position: absolute;
+  width: 20px;
+  height: 10px;
+  background: linear-gradient(90deg, #85bb65 0%, #2E7D32 50%, #85bb65 100%);
+  border: 1px solid #1B5E20;
+  border-radius: 2px;
+  opacity: 0;
+  animation: flyMoney 10s linear infinite;
 }
 
-@keyframes splashRight {
-  0%, 82% { transform: translate(0, 0); opacity: 0; }
-  83% { transform: translate(0, 0); opacity: 1; }
-  95% { transform: translate(15px, -20px); opacity: 0; }
-  100% { transform: translate(15px, -20px); opacity: 0; }
+.money-bill::after {
+  content: '$';
+  position: absolute;
+  font-size: 6px;
+  color: #1B5E20;
+  font-weight: bold;
+  top: 1px;
+  left: 7px;
+}
+
+.money-bill.bill-1 {
+  left: 20px;
+  animation-delay: 0s;
+}
+
+.money-bill.bill-2 {
+  left: 50px;
+  animation-delay: 0.1s;
+}
+
+.money-bill.bill-3 {
+  left: 35px;
+  animation-delay: 0.05s;
+}
+
+@keyframes flyMoney {
+  0%, 82% {
+    opacity: 0;
+    transform: translate(0, 0) rotate(0deg);
+  }
+  83% {
+    opacity: 1;
+    transform: translate(0, 0) rotate(0deg);
+  }
+  95% {
+    opacity: 0;
+    transform: translate(var(--fly-x, -20px), -50px) rotate(var(--fly-rot, -180deg));
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.money-bill.bill-1 { --fly-x: -30px; --fly-rot: -200deg; }
+.money-bill.bill-2 { --fly-x: 30px; --fly-rot: 180deg; }
+.money-bill.bill-3 { --fly-x: 0px; --fly-rot: -150deg; }
+
+/* Flying dollar signs */
+.splash-dollar {
+  position: absolute;
+  font-size: 16px;
+  font-weight: 900;
+  color: #4CAF50;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+  opacity: 0;
+  animation: flyDollar 10s linear infinite;
+}
+
+.splash-dollar.dollar-1 {
+  left: 10px;
+  --fly-x: -25px;
+  --fly-y: -40px;
+  animation-delay: 0s;
+}
+
+.splash-dollar.dollar-2 {
+  left: 45px;
+  --fly-x: 5px;
+  --fly-y: -55px;
+  animation-delay: 0.08s;
+}
+
+.splash-dollar.dollar-3 {
+  left: 75px;
+  --fly-x: 25px;
+  --fly-y: -35px;
+  animation-delay: 0.04s;
+}
+
+.splash-dollar.dollar-4 {
+  left: 30px;
+  --fly-x: -10px;
+  --fly-y: -60px;
+  animation-delay: 0.12s;
+}
+
+.splash-dollar.dollar-5 {
+  left: 60px;
+  --fly-x: 15px;
+  --fly-y: -45px;
+  animation-delay: 0.06s;
+}
+
+@keyframes flyDollar {
+  0%, 82% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.5);
+  }
+  83% {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
+  }
+  92% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--fly-x), var(--fly-y)) scale(0.3);
+  }
+}
+
+/* Floating coins */
+.splash-coin {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  background: radial-gradient(circle at 30% 30%, #FFD700, #B8860B);
+  border-radius: 50%;
+  border: 2px solid #996515;
+  opacity: 0;
+  animation: flyCoin 10s linear infinite;
+  box-shadow: inset -2px -2px 4px rgba(0,0,0,0.3);
+}
+
+.splash-coin::after {
+  content: '$';
+  position: absolute;
+  font-size: 8px;
+  font-weight: bold;
+  color: #996515;
+  top: 1px;
+  left: 3px;
+}
+
+.splash-coin.coin-1 {
+  left: 15px;
+  --coin-x: -35px;
+  --coin-y: -30px;
+  --coin-rot: -360deg;
+}
+
+.splash-coin.coin-2 {
+  left: 70px;
+  --coin-x: 35px;
+  --coin-y: -40px;
+  --coin-rot: 360deg;
+}
+
+.splash-coin.coin-3 {
+  left: 40px;
+  --coin-x: 0px;
+  --coin-y: -50px;
+  --coin-rot: -270deg;
+}
+
+@keyframes flyCoin {
+  0%, 82% {
+    opacity: 0;
+    transform: translate(0, 0) rotate(0deg);
+  }
+  83% {
+    opacity: 1;
+    transform: translate(0, 0) rotate(0deg);
+  }
+  95% {
+    opacity: 0.8;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--coin-x), var(--coin-y)) rotate(var(--coin-rot));
+  }
+}
+
+/* Bag shake when duck lands */
+.bag-body, .bag-tie, .bag-dollar {
+  animation: bagShake 10s linear infinite;
+}
+
+@keyframes bagShake {
+  0%, 82%, 90%, 100% { transform: translateX(-50%) rotate(0deg); }
+  84% { transform: translateX(-50%) rotate(-3deg); }
+  86% { transform: translateX(-50%) rotate(3deg); }
+  88% { transform: translateX(-50%) rotate(-2deg); }
+}
+
+.bag-body {
+  animation-name: bagBodyShake;
+}
+
+@keyframes bagBodyShake {
+  0%, 82%, 90%, 100% { transform: translateX(-50%) rotate(0deg) scale(1); }
+  84% { transform: translateX(-50%) rotate(-3deg) scale(1.02); }
+  86% { transform: translateX(-50%) rotate(3deg) scale(1.02); }
+  88% { transform: translateX(-50%) rotate(-2deg) scale(1.01); }
 }
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .duck-scene {
-    height: 50px;
+    height: 60px;
   }
 
   .duck-body {
-    width: 24px;
-    height: 18px;
+    width: 28px;
+    height: 22px;
   }
 
   .duck-head {
-    width: 14px;
-    height: 12px;
-    top: -6px;
+    width: 16px;
+    height: 14px;
+    top: -4px;
   }
 
   .duck-eye {
-    width: 4px;
-    height: 4px;
-  }
-
-  .duck-beak {
-    width: 8px;
+    width: 5px;
     height: 5px;
   }
 
-  .money-pool {
-    width: 60px;
-    right: 10px;
+  .duck-beak {
+    width: 10px;
+    height: 6px;
   }
 
-  .money-surface {
-    height: 15px;
+  .money-bag {
+    width: 70px;
+    right: 15px;
+  }
+
+  .bag-body {
+    width: 60px;
+    height: 45px;
+  }
+
+  .bag-dollar {
+    font-size: 20px;
   }
 }
 
