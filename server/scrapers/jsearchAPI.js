@@ -1,6 +1,7 @@
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 import { format } from 'date-fns';
+import { recordApiCall } from '../utils/database.js';
 
 // Helper function to extract salary from text
 const extractSalaryFromText = (text) => {
@@ -192,9 +193,11 @@ export const searchJSearchAPI = async (filters) => {
 
     // Fetch multiple pages sequentially to get more results
     let jobs = [];
+    let pagesRequested = 0;
     const MAX_PAGES = 5;
     for (let page = 1; page <= MAX_PAGES; page++) {
       try {
+        pagesRequested++;
         const response = await axios.request({
           method: 'GET',
           url: 'https://jsearch.p.rapidapi.com/search',
@@ -208,8 +211,17 @@ export const searchJSearchAPI = async (filters) => {
         console.log(`JSearch page ${page}: ${pageJobs.length} jobs`);
       } catch (pageError) {
         console.warn(`JSearch page ${page} failed:`, pageError.message);
+        // Record the failed page request
+        const errorType = pageError.response?.status === 429 ? 'rate_limit' :
+                          pageError.response?.status === 403 ? 'quota_exceeded' : 'other';
+        await recordApiCall(1, 'failure', errorType);
         break; // Stop paginating on error (e.g. rate limit)
       }
+    }
+
+    // Record successful API call with total pages requested
+    if (pagesRequested > 0) {
+      await recordApiCall(pagesRequested, 'success', null);
     }
 
     console.log(`JSearch API returned ${jobs.length} total jobs across pages`);
@@ -510,13 +522,18 @@ export const searchJSearchAPI = async (filters) => {
     return { jobs: filteredJobs, debug };
 
   } catch (error) {
+    let errorType = 'other';
     if (error.response?.status === 403) {
       console.error('JSearch API: Invalid API key or quota exceeded');
+      errorType = 'quota_exceeded';
     } else if (error.response?.status === 429) {
       console.error('JSearch API: Rate limit exceeded');
+      errorType = 'rate_limit';
     } else {
       console.error('JSearch API error:', error.message);
     }
+    // Record failed API call
+    await recordApiCall(1, 'failure', errorType);
     return { jobs: [], debug: { error: error.message } };
   }
 };

@@ -3,6 +3,8 @@ import SearchForm from './components/SearchForm';
 import JobResults from './components/JobResults';
 import JobActions from './components/JobActions';
 import RecurringSearches from './components/RecurringSearches';
+import Settings from './components/Settings';
+import DuckAnimation from './components/DuckAnimation';
 import './App.css';
 
 function App() {
@@ -13,6 +15,7 @@ function App() {
   const [debugInfo, setDebugInfo] = useState(null);
   const [showDebug, setShowDebug] = useState(false);
   const [selectedJobs, setSelectedJobs] = useState(new Set());
+  const [showSettings, setShowSettings] = useState(false);
 
   // Ref so JobActions can trigger a refresh on the RecurringSearches panel
   // after a new recurring search is created
@@ -66,9 +69,22 @@ function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <h1>🤖 Jobinator 3000</h1>
-        <p>Your Job Search Companion</p>
+        <DuckAnimation />
+        <div className="header-content">
+          <div className="header-title">
+            <h1>Jobinator 3000</h1>
+            <p>Your Job Search Companion</p>
+          </div>
+          <button className="settings-btn" onClick={() => setShowSettings(true)} title="Settings">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+          </button>
+        </div>
       </header>
+
+      <Settings isOpen={showSettings} onClose={() => setShowSettings(false)} />
 
       <div className="app-content">
         <SearchForm

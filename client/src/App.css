@@ -10,6 +10,19 @@
   text-align: center;
   color: white;
   margin-bottom: 40px;
+  position: relative;
+  padding-top: 60px; /* Space for the duck scene */
+}
+
+.header-content {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+}
+
+.header-title {
+  text-align: center;
 }
 
 .app-header h1 {
@@ -24,6 +37,33 @@
   font-size: 1.2rem;
   opacity: 0.95;
   font-weight: 500;
+}
+
+.settings-btn {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: white;
+  padding: 10px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, transform 0.2s;
+}
+
+.settings-btn:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: translateY(-50%) rotate(45deg);
+}
+
+.settings-btn svg {
+  width: 24px;
+  height: 24px;
 }
 
 .app-content {
@@ -227,6 +267,20 @@
 @media (max-width: 768px) {
   .app-header h1 {
     font-size: 2.5rem;
+  }
+
+  .header-content {
+    padding: 0 50px;
+  }
+
+  .settings-btn {
+    right: -40px;
+    padding: 8px;
+  }
+
+  .settings-btn svg {
+    width: 20px;
+    height: 20px;
   }
 
   .app-content {

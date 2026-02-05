@@ -1,0 +1,333 @@
+.duck-scene {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* === THE DUCK === */
+.duck {
+  position: absolute;
+  left: -60px;
+  bottom: 8px;
+  animation: duckWalk 8s linear infinite;
+  z-index: 10;
+}
+
+@keyframes duckWalk {
+  0% {
+    left: -60px;
+    bottom: 8px;
+    transform: translateY(0);
+  }
+  /* Walking across */
+  70% {
+    left: calc(100% - 100px);
+    bottom: 8px;
+    transform: translateY(0);
+  }
+  /* Jump up */
+  78% {
+    left: calc(100% - 70px);
+    bottom: 35px;
+    transform: translateY(0) rotate(-15deg);
+  }
+  /* Dive down into pool */
+  85% {
+    left: calc(100% - 55px);
+    bottom: 5px;
+    transform: translateY(0) rotate(25deg);
+  }
+  /* Splash - duck disappears */
+  86%, 100% {
+    left: calc(100% - 55px);
+    bottom: -30px;
+    transform: translateY(0) rotate(25deg);
+    opacity: 0;
+  }
+}
+
+/* Duck body - pixel art style */
+.duck-body {
+  width: 32px;
+  height: 24px;
+  background: #FFD93D;
+  border-radius: 50% 50% 45% 45%;
+  position: relative;
+  box-shadow:
+    inset -3px -3px 0 #E6C235,
+    2px 2px 0 rgba(0,0,0,0.1);
+  image-rendering: pixelated;
+}
+
+.duck-head {
+  position: absolute;
+  width: 18px;
+  height: 16px;
+  background: #FFD93D;
+  border-radius: 50%;
+  top: -8px;
+  left: -4px;
+  box-shadow: inset -2px -2px 0 #E6C235;
+}
+
+.duck-eye {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  background: #1a1a1a;
+  border-radius: 50%;
+  top: 4px;
+  left: 3px;
+  box-shadow: 1px 1px 0 rgba(255,255,255,0.5) inset;
+}
+
+.duck-beak {
+  position: absolute;
+  width: 10px;
+  height: 6px;
+  background: #FF8C00;
+  border-radius: 0 50% 50% 0;
+  top: 8px;
+  left: -8px;
+  box-shadow: inset -1px -1px 0 #E67300;
+}
+
+.duck-wing {
+  position: absolute;
+  width: 14px;
+  height: 12px;
+  background: #E6C235;
+  border-radius: 50%;
+  top: 6px;
+  right: 4px;
+  animation: wingFlap 0.3s ease-in-out infinite;
+}
+
+@keyframes wingFlap {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(-10deg); }
+}
+
+/* Duck legs - animated walking */
+.duck-legs {
+  position: absolute;
+  bottom: -8px;
+  left: 8px;
+  width: 16px;
+  height: 10px;
+}
+
+.duck-leg {
+  position: absolute;
+  width: 4px;
+  height: 8px;
+  background: #FF8C00;
+  bottom: 0;
+  border-radius: 0 0 2px 2px;
+}
+
+.duck-leg::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: -2px;
+  width: 8px;
+  height: 3px;
+  background: #FF8C00;
+  border-radius: 2px;
+}
+
+.duck-leg.left {
+  left: 2px;
+  animation: legLeft 0.25s ease-in-out infinite;
+}
+
+.duck-leg.right {
+  right: 2px;
+  animation: legRight 0.25s ease-in-out infinite;
+}
+
+@keyframes legLeft {
+  0%, 100% { transform: rotate(-20deg); }
+  50% { transform: rotate(20deg); }
+}
+
+@keyframes legRight {
+  0%, 100% { transform: rotate(20deg); }
+  50% { transform: rotate(-20deg); }
+}
+
+/* === MONEY POOL === */
+.money-pool {
+  position: absolute;
+  right: 20px;
+  bottom: 0;
+  width: 80px;
+  height: 30px;
+}
+
+.money-surface {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 20px;
+  background: linear-gradient(to bottom, #4ADE80 0%, #22C55E 50%, #16A34A 100%);
+  border-radius: 50%;
+  box-shadow:
+    inset 0 5px 15px rgba(255,255,255,0.3),
+    0 2px 4px rgba(0,0,0,0.2);
+}
+
+.money-wave {
+  position: absolute;
+  bottom: 10px;
+  left: 10%;
+  width: 80%;
+  height: 8px;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(255,255,255,0.4) 25%,
+    rgba(255,255,255,0.4) 75%,
+    transparent 100%
+  );
+  border-radius: 50%;
+  animation: waveMove 1.5s ease-in-out infinite;
+}
+
+@keyframes waveMove {
+  0%, 100% { transform: translateX(-5px) scaleX(0.9); }
+  50% { transform: translateX(5px) scaleX(1.1); }
+}
+
+/* Floating coins */
+.coin {
+  position: absolute;
+  font-size: 12px;
+  font-weight: bold;
+  color: #FCD34D;
+  text-shadow: 1px 1px 0 #B8860B;
+  animation: coinFloat 2s ease-in-out infinite;
+}
+
+.coin-1 {
+  bottom: 12px;
+  left: 15px;
+  animation-delay: 0s;
+}
+
+.coin-2 {
+  bottom: 15px;
+  left: 40px;
+  animation-delay: 0.5s;
+}
+
+.coin-3 {
+  bottom: 10px;
+  right: 15px;
+  animation-delay: 1s;
+}
+
+@keyframes coinFloat {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-4px) rotate(10deg); }
+}
+
+/* Splash effect - appears when duck dives */
+.money-splash {
+  position: absolute;
+  bottom: 15px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 40px;
+  height: 30px;
+  opacity: 0;
+  animation: splashEffect 8s linear infinite;
+}
+
+.money-splash::before,
+.money-splash::after {
+  content: '$';
+  position: absolute;
+  font-size: 10px;
+  font-weight: bold;
+  color: #4ADE80;
+}
+
+.money-splash::before {
+  left: 5px;
+  animation: splashLeft 8s linear infinite;
+}
+
+.money-splash::after {
+  right: 5px;
+  animation: splashRight 8s linear infinite;
+}
+
+@keyframes splashEffect {
+  0%, 82% { opacity: 0; }
+  83% { opacity: 1; }
+  95% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@keyframes splashLeft {
+  0%, 82% { transform: translate(0, 0); opacity: 0; }
+  83% { transform: translate(0, 0); opacity: 1; }
+  95% { transform: translate(-15px, -20px); opacity: 0; }
+  100% { transform: translate(-15px, -20px); opacity: 0; }
+}
+
+@keyframes splashRight {
+  0%, 82% { transform: translate(0, 0); opacity: 0; }
+  83% { transform: translate(0, 0); opacity: 1; }
+  95% { transform: translate(15px, -20px); opacity: 0; }
+  100% { transform: translate(15px, -20px); opacity: 0; }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .duck-scene {
+    height: 50px;
+  }
+
+  .duck-body {
+    width: 24px;
+    height: 18px;
+  }
+
+  .duck-head {
+    width: 14px;
+    height: 12px;
+    top: -6px;
+  }
+
+  .duck-eye {
+    width: 4px;
+    height: 4px;
+  }
+
+  .duck-beak {
+    width: 8px;
+    height: 5px;
+  }
+
+  .money-pool {
+    width: 60px;
+    right: 10px;
+  }
+
+  .money-surface {
+    height: 15px;
+  }
+}
+
+@media (max-width: 480px) {
+  .duck-scene {
+    display: none; /* Hide on very small screens */
+  }
+}

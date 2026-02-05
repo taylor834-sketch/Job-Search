@@ -1,7 +1,7 @@
 import { searchJSearchAPI } from '../scrapers/jsearchAPI.js';
 import { generateExcelFile } from '../utils/excelExport.js';
 import { sendJobAlertEmail } from '../utils/emailService.js';
-import { saveSavedSearch, getAllSavedSearches, deleteSavedSearch, toggleSearchActive, updateSavedSearch } from '../utils/database.js';
+import { saveSavedSearch, getAllSavedSearches, deleteSavedSearch, toggleSearchActive, updateSavedSearch, getApiUsageStats } from '../utils/database.js';
 
 export const searchJobs = async (req, res) => {
   try {
@@ -223,6 +223,24 @@ export const updateRecurringSearch = async (req, res) => {
 
   } catch (error) {
     console.error('Error updating recurring search:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+};
+
+export const getApiStatus = async (req, res) => {
+  try {
+    const stats = await getApiUsageStats();
+
+    res.json({
+      success: true,
+      ...stats
+    });
+
+  } catch (error) {
+    console.error('Error getting API status:', error);
     res.status(500).json({
       success: false,
       error: error.message

@@ -95,3 +95,13 @@ export const updateRecurringSearch = async (searchId, updateData) => {
     );
   }
 };
+
+export const getApiStatus = async () => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/jobs/api-status`);
+    return response.data;
+  } catch (error) {
+    console.error('Get API Status Error:', error);
+    throw new Error('Failed to get API status');
+  }
+};
