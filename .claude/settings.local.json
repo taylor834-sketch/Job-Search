@@ -8,7 +8,26 @@
       "Bash(git commit:*)",
       "Bash(git remote add:*)",
       "Bash(git branch:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "WebFetch(domain:www.tealhq.com)",
+      "WebFetch(domain:rapidapi.com)",
+      "Bash(node:*)",
+      "Bash(npm install:*)",
+      "Bash(git rm:*)",
+      "Bash(npx vite build)",
+      "WebFetch(domain:www.monster.com)",
+      "Bash(cd /Users/taylo/OneDrive/Desktop/Job Searcher)",
+      "Bash(echo \"HOME=$HOME\")",
+      "Bash(python3:*)",
+      "Bash(curl:*)",
+      "Bash(# The server script runs from project root. dotenv.config\\(\\) without a path arg # looks for .env in CWD. Let''s also check if there''s a .env anywhere on the Desktop # or if it was in a previous git stash/commit cd \"\"/c/Users/taylo/OneDrive/Desktop/Job Searcher\"\" echo \"\"=== git log for .env \\(in case it was ever committed\\) ===\"\" git log --all --full-history -- .env)",
+      "Bash(tasklist:*)",
+      "Bash(fuser:*)",
+      "Bash(# Broader search — any .env file anywhere accessible, and also look for the exact name with different path separators find \"\"/c/Users/taylo\"\" -iname \"\"*aggregator*\"\")",
+      "Bash(# Find and kill whatever is on 3001 ss -tlnp | grep 3001 || netstat -tlnp)",
+      "Bash(pkill:*)",
+      "Bash(npm run build:*)",
+      "Bash(dir:*)"
     ]
   }
 }

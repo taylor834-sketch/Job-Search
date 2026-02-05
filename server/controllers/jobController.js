@@ -41,7 +41,8 @@ export const searchJobs = async (req, res) => {
     res.json({
       success: true,
       count: jobs.length,
-      jobs: jobs
+      jobs: jobs,
+      debug
     });
   } catch (error) {
     console.error('Error in searchJobs:', error);

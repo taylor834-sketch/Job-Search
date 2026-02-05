@@ -110,6 +110,14 @@ function App() {
               <div className="debug-details">
                 <p className="debug-title">Where did the jobs go?</p>
 
+                {/* API Error if present */}
+                {debugInfo.error && (
+                  <div className="debug-row debug-error-row">
+                    <span className="debug-label">API Error</span>
+                    <span className="debug-value debug-error">{debugInfo.error}</span>
+                  </div>
+                )}
+
                 {/* Search query that was actually sent */}
                 <div className="debug-row">
                   <span className="debug-label">Query sent to API</span>
@@ -119,11 +127,25 @@ function App() {
                   <span className="debug-label">Date filter</span>
                   <span className="debug-value">{debugInfo.datePosted}</span>
                 </div>
+                <div className="debug-row">
+                  <span className="debug-label">Remote only</span>
+                  <span className="debug-value">{debugInfo.isRemoteOnly ? 'Yes' : 'No'}</span>
+                </div>
+                <div className="debug-row">
+                  <span className="debug-label">Salary filter</span>
+                  <span className="debug-value">
+                    {debugInfo.salaryFilter?.min || debugInfo.salaryFilter?.max
+                      ? `$${(debugInfo.salaryFilter.min || 0).toLocaleString()} - $${(debugInfo.salaryFilter.max || 300000).toLocaleString()}`
+                      : 'None'}
+                  </span>
+                </div>
 
                 {/* API raw count */}
                 <div className="debug-row">
                   <span className="debug-label">API returned</span>
-                  <span className="debug-value">{debugInfo.apiReturned ?? '—'} jobs</span>
+                  <span className={`debug-value ${debugInfo.apiReturned === 0 ? 'debug-error' : ''}`}>
+                    {debugInfo.apiReturned ?? '—'} jobs
+                  </span>
                 </div>
 
                 {/* Salary filter row + reasons */}
@@ -143,12 +165,15 @@ function App() {
                     </div>
                     {debugInfo.remoteReasons?.length > 0 && (
                       <div className="debug-reasons">
-                        {debugInfo.remoteReasons.map((r, i) => (
+                        {debugInfo.remoteReasons.slice(0, 5).map((r, i) => (
                           <div key={i} className="debug-reason-item">
                             <span className="debug-reason-title">{r.title}</span>
                             <span className="debug-reason-why">{r.reason}</span>
                           </div>
                         ))}
+                        {debugInfo.remoteReasons.length > 5 && (
+                          <div className="debug-reason-more">+ {debugInfo.remoteReasons.length - 5} more</div>
+                        )}
                       </div>
                     )}
                   </>
@@ -163,12 +188,15 @@ function App() {
                     </div>
                     {debugInfo.employmentReasons?.length > 0 && (
                       <div className="debug-reasons">
-                        {debugInfo.employmentReasons.map((r, i) => (
+                        {debugInfo.employmentReasons.slice(0, 5).map((r, i) => (
                           <div key={i} className="debug-reason-item">
                             <span className="debug-reason-title">{r.title}</span>
                             <span className="debug-reason-why">{r.employmentType}</span>
                           </div>
                         ))}
+                        {debugInfo.employmentReasons.length > 5 && (
+                          <div className="debug-reason-more">+ {debugInfo.employmentReasons.length - 5} more</div>
+                        )}
                       </div>
                     )}
                   </>
@@ -183,7 +211,7 @@ function App() {
                 {/* Hint — pick the LAST filter that brought it to zero */}
                 <p className="debug-hint">
                   {debugInfo.error
-                    ? debugInfo.error
+                    ? `API Error: ${debugInfo.error}. This could be a rate limit, quota exceeded, or invalid API key. Check the Settings panel for API status.`
                     : debugInfo.apiReturned === 0
                       ? 'The API itself returned nothing. Try a broader search term or change the date filter (e.g. "Last 7 Days" instead of "Today").'
                       : debugInfo.employmentFilteredOut > 0 && debugInfo.afterEmploymentFilter === 0
@@ -194,6 +222,41 @@ function App() {
                             ? 'Every job the API returned was flagged as hybrid/onsite by our keyword scanner. Try adding "Onsite" or "Hybrid" to your location types.'
                             : 'Try relaxing one or more filters to get results.'}
                 </p>
+
+                {/* Copy Debug Report button */}
+                <button
+                  className="debug-copy-btn"
+                  onClick={() => {
+                    const report = `=== JOBINATOR DEBUG REPORT ===
+Timestamp: ${new Date().toISOString()}
+Search Query: "${debugInfo.query}"
+Date Filter: ${debugInfo.datePosted}
+Remote Only: ${debugInfo.isRemoteOnly ? 'Yes' : 'No'}
+Salary Filter: ${debugInfo.salaryFilter?.min || 0} - ${debugInfo.salaryFilter?.max || 300000}
+
+API Response:
+- API Returned: ${debugInfo.apiReturned ?? 'N/A'} jobs
+- Error: ${debugInfo.error || 'None'}
+
+Filter Results:
+- After Remote Filter: ${debugInfo.afterRemoteFilter ?? 'N/A'}
+- Remote Filtered Out: ${debugInfo.remoteFilteredOut ?? 0}
+- Salary Filtered Out: ${debugInfo.salaryFilteredOut ?? 0}
+- Employment Filtered Out: ${debugInfo.employmentFilteredOut ?? 0}
+- Final Count: ${debugInfo.afterEmploymentFilter ?? 0}
+
+${debugInfo.remoteReasons?.length > 0 ? `Remote Filter Reasons:\n${debugInfo.remoteReasons.map(r => `  - ${r.title}: ${r.reason}`).join('\n')}` : ''}
+${debugInfo.employmentReasons?.length > 0 ? `\nEmployment Filter Reasons:\n${debugInfo.employmentReasons.map(r => `  - ${r.title}: ${r.employmentType}`).join('\n')}` : ''}
+
+Raw Debug Object:
+${JSON.stringify(debugInfo, null, 2)}
+=== END REPORT ===`;
+                    navigator.clipboard.writeText(report);
+                    alert('Debug report copied to clipboard!');
+                  }}
+                >
+                  Copy Debug Report
+                </button>
               </div>
             )}
           </div>

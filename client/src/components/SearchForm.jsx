@@ -48,7 +48,7 @@ function SearchForm({ onResults, onLoading, onError }) {
   const [location, setLocation] = useState('');
   const [locationSuggestions, setLocationSuggestions] = useState([]);
   const [salaryRange, setSalaryRange] = useState([0, 300000]);
-  const [datePosted, setDatePosted] = useState('all');
+  const [datePosted, setDatePosted] = useState('week');
 
   // Check if location input should be shown
   const showLocationInput = locationTypes.some(
@@ -240,7 +240,6 @@ function SearchForm({ onResults, onLoading, onError }) {
           onChange={(e) => setDatePosted(e.target.value)}
           className="text-input"
         >
-          <option value="all">All time</option>
           <option value="today">Today</option>
           <option value="3days">Last 3 Days</option>
           <option value="week">Last 7 Days</option>
