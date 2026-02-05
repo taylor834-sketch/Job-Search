@@ -251,6 +251,19 @@ export const getApiStatus = async (req, res) => {
   }
 };
 
+// Store for tracking background job status
+const runNowStatus = new Map();
+
+// Clean up old status entries after 10 minutes
+const cleanupOldStatus = () => {
+  const tenMinutesAgo = Date.now() - 10 * 60 * 1000;
+  for (const [key, value] of runNowStatus.entries()) {
+    if (value.startTime < tenMinutesAgo) {
+      runNowStatus.delete(key);
+    }
+  }
+};
+
 export const runRecurringSearchNow = async (req, res) => {
   try {
     const { searchId } = req.params;
@@ -264,46 +277,140 @@ export const runRecurringSearchNow = async (req, res) => {
       });
     }
 
-    const { searchCriteria } = search;
+    // Clean up old entries
+    cleanupOldStatus();
 
-    // Ensure jobTitles array exists (backwards compat: old searches have jobTitle string)
-    const searchParams = {
-      ...searchCriteria,
-      datePosted: 'week'
-    };
-    // If old format with jobTitle, convert to jobTitles array
-    if (searchCriteria.jobTitle && !searchCriteria.jobTitles) {
-      searchParams.jobTitles = [searchCriteria.jobTitle];
-    }
+    // Initialize status tracking
+    const statusKey = `${searchId}-${Date.now()}`;
+    runNowStatus.set(statusKey, {
+      searchId,
+      status: 'running',
+      startTime: Date.now(),
+      message: 'Starting search...',
+      debug: null,
+      error: null
+    });
 
-    // Run the search (use 'week' for more results in manual runs)
-    const { jobs, debug } = await searchJSearchAPI(searchParams);
-
-    console.log(`Manual run of search ${searchId}: found ${jobs.length} jobs`);
-
-    if (jobs.length === 0) {
-      return res.json({
-        success: true,
-        message: 'Search completed but no jobs found. No email sent.',
-        jobsFound: 0,
-        debug
-      });
-    }
-
-    // Send the email
-    await sendJobAlertEmail(search.userEmail, jobs, searchCriteria);
-
-    // Update last run time
-    await updateLastRun(searchId);
-
+    // Respond immediately - the search will run in the background
     res.json({
       success: true,
-      message: `Email sent with ${jobs.length} job(s)!`,
-      jobsFound: jobs.length
+      message: 'Search started! You will receive an email shortly if jobs are found.',
+      statusKey,
+      background: true
+    });
+
+    // Run the actual search in the background (after response is sent)
+    setImmediate(async () => {
+      const status = runNowStatus.get(statusKey);
+      try {
+        const { searchCriteria } = search;
+
+        // Ensure jobTitles array exists (backwards compat: old searches have jobTitle string)
+        const searchParams = {
+          ...searchCriteria,
+          datePosted: 'week'
+        };
+        // If old format with jobTitle, convert to jobTitles array
+        if (searchCriteria.jobTitle && !searchCriteria.jobTitles) {
+          searchParams.jobTitles = [searchCriteria.jobTitle];
+        }
+
+        status.message = 'Searching for jobs...';
+        console.log(`[RunNow ${statusKey}] Starting search for: ${JSON.stringify(searchParams.jobTitles || searchParams.jobTitle)}`);
+
+        // Run the search (use 'week' for more results in manual runs)
+        const { jobs, debug } = await searchJSearchAPI(searchParams);
+        status.debug = debug;
+
+        console.log(`[RunNow ${statusKey}] Found ${jobs.length} jobs`);
+
+        if (jobs.length === 0) {
+          status.status = 'completed';
+          status.message = 'Search completed but no jobs found. No email sent.';
+          status.jobsFound = 0;
+          console.log(`[RunNow ${statusKey}] No jobs found, no email sent`);
+          return;
+        }
+
+        status.message = `Found ${jobs.length} jobs, sending email...`;
+
+        // Send the email
+        await sendJobAlertEmail(search.userEmail, jobs, searchCriteria);
+
+        // Update last run time
+        await updateLastRun(searchId);
+
+        status.status = 'completed';
+        status.message = `Email sent with ${jobs.length} job(s)!`;
+        status.jobsFound = jobs.length;
+        console.log(`[RunNow ${statusKey}] Email sent successfully with ${jobs.length} jobs`);
+
+      } catch (error) {
+        console.error(`[RunNow ${statusKey}] Error:`, error);
+        status.status = 'error';
+        status.error = error.message;
+        status.message = `Error: ${error.message}`;
+      }
     });
 
   } catch (error) {
-    console.error('Error running search now:', error);
+    console.error('Error initiating run now:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+};
+
+// Get status of a background run
+export const getRunNowStatus = async (req, res) => {
+  try {
+    const { statusKey } = req.params;
+
+    const status = runNowStatus.get(statusKey);
+    if (!status) {
+      return res.status(404).json({
+        success: false,
+        error: 'Status not found. It may have expired or the search was never started.'
+      });
+    }
+
+    res.json({
+      success: true,
+      ...status,
+      elapsed: Date.now() - status.startTime
+    });
+
+  } catch (error) {
+    console.error('Error getting run status:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+};
+
+// Get all recent run statuses (for debugging)
+export const getAllRunStatuses = async (req, res) => {
+  try {
+    cleanupOldStatus();
+
+    const statuses = [];
+    for (const [key, value] of runNowStatus.entries()) {
+      statuses.push({
+        statusKey: key,
+        ...value,
+        elapsed: Date.now() - value.startTime
+      });
+    }
+
+    res.json({
+      success: true,
+      statuses: statuses.sort((a, b) => b.startTime - a.startTime)
+    });
+
+  } catch (error) {
+    console.error('Error getting all run statuses:', error);
     res.status(500).json({
       success: false,
       error: error.message

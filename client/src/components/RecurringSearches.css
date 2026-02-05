@@ -314,3 +314,118 @@
 .tag-input::placeholder {
   color: #aaa;
 }
+
+/* Run Status Display */
+.run-status {
+  margin-bottom: 15px;
+  padding: 12px 15px;
+  border-radius: 8px;
+  border-left: 4px solid;
+}
+
+.run-status--running {
+  background: #e3f2fd;
+  border-left-color: #2196F3;
+}
+
+.run-status--completed {
+  background: #e8f5e9;
+  border-left-color: #4CAF50;
+}
+
+.run-status--error {
+  background: #ffebee;
+  border-left-color: #f44336;
+}
+
+.run-status--timeout {
+  background: #fff3e0;
+  border-left-color: #ff9800;
+}
+
+.run-status-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.run-status-icon {
+  font-size: 1.2rem;
+}
+
+.run-status-message {
+  flex: 1;
+  font-weight: 500;
+  font-size: 0.95rem;
+}
+
+.run-status-close {
+  background: none;
+  border: none;
+  font-size: 1.1rem;
+  cursor: pointer;
+  opacity: 0.6;
+  padding: 0 5px;
+}
+
+.run-status-close:hover {
+  opacity: 1;
+}
+
+.run-status-elapsed {
+  margin-top: 5px;
+  font-size: 0.8rem;
+  color: #666;
+  padding-left: 30px;
+}
+
+.run-status-actions {
+  margin-top: 10px;
+  display: flex;
+  gap: 10px;
+  padding-left: 30px;
+}
+
+.run-debug-toggle,
+.run-debug-copy {
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: white;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.run-debug-toggle:hover,
+.run-debug-copy:hover {
+  background: #f5f5f5;
+}
+
+.run-debug-copy {
+  background: #667eea;
+  color: white;
+  border-color: #667eea;
+}
+
+.run-debug-copy:hover {
+  background: #5a6fd6;
+}
+
+.run-debug-info {
+  margin-top: 10px;
+  padding: 10px;
+  background: #f8f9fa;
+  border-radius: 4px;
+  overflow-x: auto;
+}
+
+.run-debug-info pre {
+  margin: 0;
+  font-size: 0.75rem;
+  font-family: 'Courier New', monospace;
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 200px;
+  overflow-y: auto;
+}

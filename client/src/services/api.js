@@ -122,9 +122,9 @@ export const getApiStatus = async () => {
 
 export const runRecurringSearchNow = async (searchId) => {
   try {
-    // This operation can take a while (API calls + email sending), so use longer timeout
+    // This now returns immediately and runs in background
     const response = await axios.post(`${API_BASE_URL}/jobs/recurring/${searchId}/run`, {}, {
-      timeout: 120000 // 2 minutes timeout
+      timeout: 30000 // 30 seconds should be plenty for the initial response
     });
     return response.data;
   } catch (error) {
@@ -132,12 +132,47 @@ export const runRecurringSearchNow = async (searchId) => {
 
     // Check for timeout specifically
     if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
-      throw new Error('Request timed out. The search may still be running - check your email in a few minutes.');
+      throw new Error('Request timed out. The server may be waking up - try again in 30 seconds.');
+    }
+
+    // Check for network error (server may be sleeping)
+    if (error.code === 'ERR_NETWORK' || !error.response) {
+      throw new Error('Connection error. The server may be waking up - please try again in 30 seconds.');
     }
 
     throw new Error(
       error.response?.data?.error ||
       'Failed to run search. The server may be waking up - try again in 30 seconds.'
+    );
+  }
+};
+
+export const getRunNowStatus = async (statusKey) => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/jobs/run-status/${statusKey}`, {
+      timeout: 10000
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Get Run Status Error:', error);
+    throw new Error(
+      error.response?.data?.error ||
+      'Failed to get status'
+    );
+  }
+};
+
+export const getAllRunStatuses = async () => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/jobs/run-statuses`, {
+      timeout: 10000
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Get All Run Statuses Error:', error);
+    throw new Error(
+      error.response?.data?.error ||
+      'Failed to get statuses'
     );
   }
 };

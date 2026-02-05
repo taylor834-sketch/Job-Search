@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Select from 'react-select';
-import { getRecurringSearches, deleteRecurringSearch, toggleRecurringSearch, updateRecurringSearch, runRecurringSearchNow } from '../services/api';
+import { getRecurringSearches, deleteRecurringSearch, toggleRecurringSearch, updateRecurringSearch, runRecurringSearchNow, getRunNowStatus } from '../services/api';
 import './RecurringSearches.css';
 
 const dayOptions = [
@@ -28,7 +28,10 @@ function RecurringSearches({ onRegisterRefresh }) {
   const [editEmail, setEditEmail] = useState('');
   const [editSaving, setEditSaving] = useState(false);
   const [runningSearchId, setRunningSearchId] = useState(null); // track which search is running
+  const [runStatus, setRunStatus] = useState(null); // { statusKey, status, message, debug, error }
+  const [showRunDebug, setShowRunDebug] = useState(false);
   const editTitleInputRef = useRef(null);
+  const pollIntervalRef = useRef(null);
 
   const fetchSearches = useCallback(async () => {
     try {
@@ -73,23 +76,112 @@ function RecurringSearches({ onRegisterRefresh }) {
     }
   };
 
+  // Cleanup polling on unmount
+  useEffect(() => {
+    return () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+      }
+    };
+  }, []);
+
   const handleRunNow = async (search) => {
     try {
       setRunningSearchId(search.id);
       setError(null);
+      setRunStatus(null);
+      setShowRunDebug(false);
+
       const result = await runRecurringSearchNow(search.id);
-      if (result.jobsFound > 0) {
-        alert(`Success! Email sent with ${result.jobsFound} job(s).`);
+
+      // If running in background, poll for status
+      if (result.background && result.statusKey) {
+        setRunStatus({ statusKey: result.statusKey, status: 'running', message: result.message });
+
+        // Poll for status every 3 seconds
+        pollIntervalRef.current = setInterval(async () => {
+          try {
+            const status = await getRunNowStatus(result.statusKey);
+            setRunStatus(status);
+
+            if (status.status === 'completed' || status.status === 'error') {
+              clearInterval(pollIntervalRef.current);
+              pollIntervalRef.current = null;
+              setRunningSearchId(null);
+
+              if (status.status === 'completed') {
+                if (status.jobsFound > 0) {
+                  setError(null);
+                  // Show success inline instead of alert
+                } else {
+                  setShowRunDebug(true); // Show debug for no results
+                }
+              } else {
+                setError(`Run failed: ${status.error}`);
+                setShowRunDebug(true);
+              }
+
+              // Refresh to update lastRun
+              fetchSearches();
+            }
+          } catch (pollError) {
+            console.error('Polling error:', pollError);
+            // Don't stop polling on transient errors
+          }
+        }, 3000);
+
+        // Stop polling after 3 minutes max
+        setTimeout(() => {
+          if (pollIntervalRef.current) {
+            clearInterval(pollIntervalRef.current);
+            pollIntervalRef.current = null;
+            setRunningSearchId(null);
+            if (runStatus?.status === 'running') {
+              setRunStatus(prev => ({
+                ...prev,
+                status: 'timeout',
+                message: 'Status check timed out. Check your email - the search may have completed.'
+              }));
+              setShowRunDebug(true);
+            }
+          }
+        }, 180000);
+
       } else {
-        alert('Search completed but no jobs found. No email was sent.\n\nThis might be because:\n- Your API quota is exceeded\n- No matching jobs exist for your criteria');
+        // Old synchronous response (shouldn't happen with new backend)
+        setRunningSearchId(null);
+        if (result.jobsFound > 0) {
+          setRunStatus({ status: 'completed', message: `Email sent with ${result.jobsFound} job(s)!`, jobsFound: result.jobsFound });
+        } else {
+          setRunStatus({ status: 'completed', message: 'No jobs found', jobsFound: 0, debug: result.debug });
+          setShowRunDebug(true);
+        }
+        fetchSearches();
       }
-      // Refresh to update lastRun
-      fetchSearches();
     } catch (e) {
       setError(`Failed to run search: ${e.message}`);
-    } finally {
       setRunningSearchId(null);
+      setShowRunDebug(true);
     }
+  };
+
+  const copyRunDebugReport = () => {
+    const report = `=== JOBINATOR RUN NOW DEBUG REPORT ===
+Timestamp: ${new Date().toISOString()}
+Status: ${runStatus?.status || 'N/A'}
+Message: ${runStatus?.message || 'N/A'}
+Jobs Found: ${runStatus?.jobsFound ?? 'N/A'}
+Elapsed Time: ${runStatus?.elapsed ? Math.round(runStatus.elapsed / 1000) + 's' : 'N/A'}
+Error: ${runStatus?.error || 'None'}
+
+Debug Info:
+${runStatus?.debug ? JSON.stringify(runStatus.debug, null, 2) : 'No debug info available'}
+
+Status Key: ${runStatus?.statusKey || 'N/A'}
+=== END REPORT ===`;
+
+    navigator.clipboard.writeText(report);
+    alert('Debug report copied to clipboard!');
   };
 
   // ── Edit modal helpers ──────────────────────────────────────────────────
@@ -252,6 +344,42 @@ function RecurringSearches({ onRegisterRefresh }) {
       {showPanel && (
         <div className="recurring-panel">
           {error && <p className="recurring-error">{error}</p>}
+
+          {/* Run Now Status Display */}
+          {runStatus && (
+            <div className={`run-status run-status--${runStatus.status}`}>
+              <div className="run-status-header">
+                <span className="run-status-icon">
+                  {runStatus.status === 'running' && '⏳'}
+                  {runStatus.status === 'completed' && (runStatus.jobsFound > 0 ? '✅' : '⚠️')}
+                  {runStatus.status === 'error' && '❌'}
+                  {runStatus.status === 'timeout' && '⏱️'}
+                </span>
+                <span className="run-status-message">{runStatus.message}</span>
+                {runStatus.status !== 'running' && (
+                  <button className="run-status-close" onClick={() => setRunStatus(null)}>✕</button>
+                )}
+              </div>
+              {runStatus.elapsed && runStatus.status === 'running' && (
+                <div className="run-status-elapsed">Running for {Math.round(runStatus.elapsed / 1000)}s...</div>
+              )}
+              {(runStatus.status === 'completed' || runStatus.status === 'error' || runStatus.status === 'timeout') && (
+                <div className="run-status-actions">
+                  <button className="run-debug-toggle" onClick={() => setShowRunDebug(!showRunDebug)}>
+                    {showRunDebug ? 'Hide' : 'Show'} Debug Info
+                  </button>
+                  <button className="run-debug-copy" onClick={copyRunDebugReport}>
+                    Copy Debug Report
+                  </button>
+                </div>
+              )}
+              {showRunDebug && runStatus.debug && (
+                <div className="run-debug-info">
+                  <pre>{JSON.stringify(runStatus.debug, null, 2)}</pre>
+                </div>
+              )}
+            </div>
+          )}
 
           {loading && <p className="recurring-loading">Loading...</p>}
 
