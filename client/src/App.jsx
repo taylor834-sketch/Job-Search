@@ -118,10 +118,16 @@ function App() {
                   </div>
                 )}
 
-                {/* Search query that was actually sent */}
+                {/* Search query/queries that were actually sent */}
                 <div className="debug-row">
-                  <span className="debug-label">Query sent to API</span>
-                  <span className="debug-value debug-query">"{debugInfo.query}"</span>
+                  <span className="debug-label">Queries sent to API</span>
+                  <span className="debug-value debug-query">
+                    {debugInfo.queries && debugInfo.queries.length > 0
+                      ? debugInfo.queries.map(q => `"${q}"`).join(', ')
+                      : debugInfo.query
+                        ? `"${debugInfo.query}"`
+                        : 'N/A'}
+                  </span>
                 </div>
                 <div className="debug-row">
                   <span className="debug-label">Date filter</span>
@@ -227,9 +233,13 @@ function App() {
                 <button
                   className="debug-copy-btn"
                   onClick={() => {
+                    const queriesStr = debugInfo.queries && debugInfo.queries.length > 0
+                      ? debugInfo.queries.map(q => `"${q}"`).join(', ')
+                      : debugInfo.query ? `"${debugInfo.query}"` : 'N/A';
                     const report = `=== JOBINATOR DEBUG REPORT ===
 Timestamp: ${new Date().toISOString()}
-Search Query: "${debugInfo.query}"
+Search Queries: ${queriesStr}
+Job Titles: ${debugInfo.jobTitles?.join(', ') || 'N/A'}
 Date Filter: ${debugInfo.datePosted}
 Remote Only: ${debugInfo.isRemoteOnly ? 'Yes' : 'No'}
 Salary Filter: ${debugInfo.salaryFilter?.min || 0} - ${debugInfo.salaryFilter?.max || 300000}

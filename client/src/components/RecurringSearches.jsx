@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Select from 'react-select';
 import { getRecurringSearches, deleteRecurringSearch, toggleRecurringSearch, updateRecurringSearch, runRecurringSearchNow } from '../services/api';
 import './RecurringSearches.css';
@@ -21,12 +21,14 @@ function RecurringSearches({ onRegisterRefresh }) {
 
   // Edit modal state
   const [editingSearch, setEditingSearch] = useState(null); // the full search object being edited
-  const [editTitle, setEditTitle] = useState('');
+  const [editTitles, setEditTitles] = useState([]); // Array of job titles
+  const [editTitleInput, setEditTitleInput] = useState(''); // Current input value
   const [editFrequency, setEditFrequency] = useState('daily');
   const [editDayOfWeek, setEditDayOfWeek] = useState(null);
   const [editEmail, setEditEmail] = useState('');
   const [editSaving, setEditSaving] = useState(false);
   const [runningSearchId, setRunningSearchId] = useState(null); // track which search is running
+  const editTitleInputRef = useRef(null);
 
   const fetchSearches = useCallback(async () => {
     try {
@@ -93,7 +95,16 @@ function RecurringSearches({ onRegisterRefresh }) {
   // ── Edit modal helpers ──────────────────────────────────────────────────
   const openEdit = (search) => {
     setEditingSearch(search);
-    setEditTitle(search.searchCriteria?.jobTitle || '');
+    // Support both old (jobTitle) and new (jobTitles) format
+    const criteria = search.searchCriteria || {};
+    if (criteria.jobTitles && Array.isArray(criteria.jobTitles)) {
+      setEditTitles(criteria.jobTitles);
+    } else if (criteria.jobTitle) {
+      setEditTitles([criteria.jobTitle]);
+    } else {
+      setEditTitles([]);
+    }
+    setEditTitleInput('');
     setEditFrequency(search.frequency || 'daily');
     setEditDayOfWeek(
       search.dayOfWeek
@@ -105,10 +116,50 @@ function RecurringSearches({ onRegisterRefresh }) {
 
   const closeEdit = () => {
     setEditingSearch(null);
+    setEditTitles([]);
+    setEditTitleInput('');
+  };
+
+  // Add a job title tag in edit modal
+  const addEditTitle = (title) => {
+    const trimmed = title.trim();
+    if (trimmed && !editTitles.includes(trimmed)) {
+      setEditTitles([...editTitles, trimmed]);
+    }
+    setEditTitleInput('');
+  };
+
+  // Remove a job title tag in edit modal
+  const removeEditTitle = (titleToRemove) => {
+    setEditTitles(editTitles.filter(t => t !== titleToRemove));
+  };
+
+  // Handle key press in edit title input
+  const handleEditTitleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (editTitleInput.trim()) {
+        addEditTitle(editTitleInput);
+      }
+    } else if (e.key === 'Backspace' && !editTitleInput && editTitles.length > 0) {
+      removeEditTitle(editTitles[editTitles.length - 1]);
+    }
   };
 
   const handleSaveEdit = async () => {
     if (!editingSearch) return;
+
+    // Get all titles: tags + any remaining input
+    const allTitles = [...editTitles];
+    if (editTitleInput.trim()) {
+      allTitles.push(editTitleInput.trim());
+    }
+
+    if (allTitles.length === 0) {
+      setError('Please enter at least one job title');
+      return;
+    }
+
     if (editFrequency === 'weekly' && !editDayOfWeek) {
       setError('Please select a day of the week for weekly searches');
       return;
@@ -118,7 +169,8 @@ function RecurringSearches({ onRegisterRefresh }) {
     try {
       const updatedCriteria = {
         ...editingSearch.searchCriteria,
-        jobTitle: editTitle
+        jobTitles: allTitles,
+        jobTitle: allTitles[0] // Keep for backwards compat
       };
 
       await updateRecurringSearch(editingSearch.id, {
@@ -167,7 +219,12 @@ function RecurringSearches({ onRegisterRefresh }) {
   const formatCriteria = (criteria) => {
     if (!criteria) return 'N/A';
     const parts = [];
-    if (criteria.jobTitle) parts.push(criteria.jobTitle);
+    // Support both old (jobTitle) and new (jobTitles) format
+    if (criteria.jobTitles && Array.isArray(criteria.jobTitles) && criteria.jobTitles.length > 0) {
+      parts.push(criteria.jobTitles.join(', '));
+    } else if (criteria.jobTitle) {
+      parts.push(criteria.jobTitle);
+    }
     if (criteria.locationType?.length) parts.push(criteria.locationType.join(', '));
     if (criteria.location) parts.push(criteria.location);
     if (criteria.minSalary || criteria.maxSalary) {
@@ -276,16 +333,35 @@ function RecurringSearches({ onRegisterRefresh }) {
             </p>
 
             <div className="modal-form">
-              {/* Job Title */}
+              {/* Job Titles */}
               <div className="form-group">
-                <label>Job Title</label>
-                <input
-                  type="text"
-                  value={editTitle}
-                  onChange={(e) => setEditTitle(e.target.value)}
-                  placeholder="e.g., Software Engineer"
-                  className="text-input"
-                />
+                <label>Job Titles <span className="label-hint">(Press Enter to add multiple)</span></label>
+                <div className="tag-input-container" onClick={() => editTitleInputRef.current?.focus()}>
+                  {editTitles.map((title, idx) => (
+                    <span key={idx} className="job-title-tag">
+                      {title}
+                      <button
+                        type="button"
+                        className="tag-remove"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeEditTitle(title);
+                        }}
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                  <input
+                    ref={editTitleInputRef}
+                    type="text"
+                    value={editTitleInput}
+                    onChange={(e) => setEditTitleInput(e.target.value)}
+                    onKeyDown={handleEditTitleKeyDown}
+                    placeholder={editTitles.length === 0 ? "e.g., Accounting (press Enter)" : "Add another..."}
+                    className="tag-input"
+                  />
+                </div>
               </div>
 
               {/* Frequency */}

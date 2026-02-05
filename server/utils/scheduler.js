@@ -9,12 +9,19 @@ const runScheduledSearch = async (search) => {
 
     const { searchCriteria } = search;
 
+    // Ensure jobTitles array exists (backwards compat: old searches have jobTitle string)
+    const searchParams = {
+      ...searchCriteria,
+      datePosted: search.frequency === 'weekly' ? 'week' : 'today'
+    };
+    // If old format with jobTitle, convert to jobTitles array
+    if (searchCriteria.jobTitle && !searchCriteria.jobTitles) {
+      searchParams.jobTitles = [searchCriteria.jobTitle];
+    }
+
     // JSearch API covers Google Jobs, LinkedIn, Indeed, and more
     const daysBack = search.frequency === 'weekly' ? 7 : 1;
-    const { jobs: allJobs } = await searchJSearchAPI({
-      ...searchCriteria,
-      datePosted: daysBack === 1 ? 'today' : 'week'
-    });
+    const { jobs: allJobs } = await searchJSearchAPI(searchParams);
 
     // Filter by posting date based on frequency
     let uniqueJobs = filterJobsByPostingDate(allJobs, daysBack);

@@ -244,3 +244,73 @@
     gap: 4px;
   }
 }
+
+/* Tag input styles for edit modal */
+.label-hint {
+  font-weight: 400;
+  font-size: 0.75rem;
+  color: #888;
+}
+
+.tag-input-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 12px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  cursor: text;
+  transition: border-color 0.3s;
+  min-height: 42px;
+  align-items: center;
+  background: white;
+}
+
+.tag-input-container:focus-within {
+  border-color: #667eea;
+}
+
+.job-title-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 16px;
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+
+.tag-remove {
+  background: rgba(255, 255, 255, 0.3);
+  border: none;
+  color: white;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.tag-remove:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.tag-input {
+  flex: 1;
+  min-width: 120px;
+  border: none;
+  outline: none;
+  font-size: 0.9rem;
+  padding: 2px 0;
+}
+
+.tag-input::placeholder {
+  color: #aaa;
+}

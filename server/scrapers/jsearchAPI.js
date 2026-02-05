@@ -142,7 +142,7 @@ const scrapeSalaryFromPage = async (url) => {
 };
 
 export const searchJSearchAPI = async (filters) => {
-  const { jobTitle, locationType, location, minSalary, maxSalary, datePosted } = filters;
+  const { jobTitle, jobTitles, locationType, location, minSalary, maxSalary, datePosted } = filters;
 
   console.log('Searching JSearch API (Google Jobs, LinkedIn, Indeed)...');
 
@@ -154,17 +154,30 @@ export const searchJSearchAPI = async (filters) => {
       return { jobs: [], debug: { error: 'JSEARCH_API_KEY not configured' } };
     }
 
-    // Build search query with location if provided
-    let query = jobTitle || 'software engineer';
+    // Support both single jobTitle and array of jobTitles
+    // Normalize to array
+    let titlesToSearch = [];
+    if (jobTitles && Array.isArray(jobTitles) && jobTitles.length > 0) {
+      titlesToSearch = jobTitles;
+    } else if (jobTitle) {
+      titlesToSearch = [jobTitle];
+    } else {
+      titlesToSearch = ['software engineer'];
+    }
+
+    console.log(`Searching for ${titlesToSearch.length} job title(s):`, titlesToSearch);
+
+    // Build base query modifiers
+    let queryModifiers = '';
 
     // Add location for onsite/hybrid jobs
     if (location && (locationType?.includes('onsite') || locationType?.includes('hybrid'))) {
-      query = `${query} in ${location}`;
+      queryModifiers += ` in ${location}`;
     }
 
     // Add "remote" to query when remote is selected to get better remote-specific results
     if (locationType?.includes('remote')) {
-      query = `${query} remote`;
+      queryModifiers += ' remote';
     }
 
     // Map datePosted values to JSearch API format
@@ -184,47 +197,70 @@ export const searchJSearchAPI = async (filters) => {
       'X-RapidAPI-Host': 'jsearch.p.rapidapi.com'
     };
 
-    const baseParams = {
-      query: query,
-      num_pages: '1',
-      date_posted: datePostedMap[datePosted] || 'all',
-      remote_jobs_only: isRemoteOnly ? 'true' : 'false'
-    };
-
-    // Fetch multiple pages sequentially to get more results
+    // Fetch jobs for each title
     let jobs = [];
     let pagesRequested = 0;
     let quotaError = null;
-    const MAX_PAGES = 5;
-    for (let page = 1; page <= MAX_PAGES; page++) {
-      try {
-        pagesRequested++;
-        const response = await axios.request({
-          method: 'GET',
-          url: 'https://jsearch.p.rapidapi.com/search',
-          params: { ...baseParams, page: String(page) },
-          headers
-        });
+    const seenJobIds = new Set(); // Deduplicate jobs across titles
 
-        // Check for quota exceeded message in response body (RapidAPI returns 200 with error message)
-        if (response.data.message && response.data.message.includes('exceeded')) {
-          console.error('JSearch API: Monthly quota exceeded (message in response)');
-          quotaError = response.data.message;
-          await recordApiCall(1, 'failure', 'quota_exceeded');
-          break;
+    // Calculate pages per title: distribute MAX_PAGES across titles
+    const MAX_TOTAL_PAGES = 5;
+    const pagesPerTitle = Math.max(1, Math.floor(MAX_TOTAL_PAGES / titlesToSearch.length));
+
+    for (const title of titlesToSearch) {
+      if (quotaError) break;
+
+      const query = title + queryModifiers;
+      console.log(`Searching for: "${query}"`);
+
+      const baseParams = {
+        query: query,
+        num_pages: '1',
+        date_posted: datePostedMap[datePosted] || 'all',
+        remote_jobs_only: isRemoteOnly ? 'true' : 'false'
+      };
+
+      // Fetch pages for this title
+      for (let page = 1; page <= pagesPerTitle; page++) {
+        try {
+          pagesRequested++;
+          const response = await axios.request({
+            method: 'GET',
+            url: 'https://jsearch.p.rapidapi.com/search',
+            params: { ...baseParams, page: String(page) },
+            headers
+          });
+
+          // Check for quota exceeded message in response body (RapidAPI returns 200 with error message)
+          if (response.data.message && response.data.message.includes('exceeded')) {
+            console.error('JSearch API: Monthly quota exceeded (message in response)');
+            quotaError = response.data.message;
+            await recordApiCall(1, 'failure', 'quota_exceeded');
+            break;
+          }
+
+          const pageJobs = response.data.data || [];
+          if (pageJobs.length === 0) break; // No more results for this title
+
+          // Deduplicate: only add jobs we haven't seen
+          let newJobs = 0;
+          for (const job of pageJobs) {
+            const jobId = job.job_id || job.job_apply_link || `${job.job_title}-${job.employer_name}`;
+            if (!seenJobIds.has(jobId)) {
+              seenJobIds.add(jobId);
+              jobs.push(job);
+              newJobs++;
+            }
+          }
+          console.log(`JSearch "${title}" page ${page}: ${pageJobs.length} jobs (${newJobs} new)`);
+        } catch (pageError) {
+          console.warn(`JSearch "${title}" page ${page} failed:`, pageError.message);
+          // Record the failed page request
+          const errorType = pageError.response?.status === 429 ? 'rate_limit' :
+                            pageError.response?.status === 403 ? 'quota_exceeded' : 'other';
+          await recordApiCall(1, 'failure', errorType);
+          break; // Stop paginating on error
         }
-
-        const pageJobs = response.data.data || [];
-        if (pageJobs.length === 0) break; // No more results
-        jobs = jobs.concat(pageJobs);
-        console.log(`JSearch page ${page}: ${pageJobs.length} jobs`);
-      } catch (pageError) {
-        console.warn(`JSearch page ${page} failed:`, pageError.message);
-        // Record the failed page request
-        const errorType = pageError.response?.status === 429 ? 'rate_limit' :
-                          pageError.response?.status === 403 ? 'quota_exceeded' : 'other';
-        await recordApiCall(1, 'failure', errorType);
-        break; // Stop paginating on error (e.g. rate limit)
       }
     }
 
@@ -238,7 +274,7 @@ export const searchJSearchAPI = async (filters) => {
           isRemoteOnly: locationType?.includes('remote') && locationType.length === 1,
           salaryFilter: { min: minSalary ?? null, max: maxSalary ?? null },
           datePosted: datePosted || 'week',
-          query: jobTitle || 'software engineer'
+          queries: titlesToSearch.map(t => t + queryModifiers)
         }
       };
     }
@@ -248,7 +284,7 @@ export const searchJSearchAPI = async (filters) => {
       await recordApiCall(pagesRequested, 'success', null);
     }
 
-    console.log(`JSearch API returned ${jobs.length} total jobs across pages`);
+    console.log(`JSearch API returned ${jobs.length} total unique jobs across all titles`);
 
     // Debug counters — track how many jobs each filter stage drops
     const debug = {
@@ -262,7 +298,8 @@ export const searchJSearchAPI = async (filters) => {
       isRemoteOnly: locationType?.includes('remote') && locationType.length === 1,
       salaryFilter: { min: minSalary ?? null, max: maxSalary ?? null },
       datePosted: datePosted || 'all',
-      query: jobTitle || 'software engineer',
+      queries: titlesToSearch.map(t => t + queryModifiers),
+      jobTitles: titlesToSearch,
       remoteReasons: [],      // per-job: why was it killed by remote filter
       employmentReasons: []   // per-job: why was it killed by employment filter
     };

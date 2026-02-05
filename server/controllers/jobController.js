@@ -7,6 +7,7 @@ export const searchJobs = async (req, res) => {
   try {
     const {
       jobTitle,
+      jobTitles, // Array of job titles (new)
       locationType, // ['remote', 'onsite', 'hybrid']
       location, // City, State for onsite/hybrid
       minSalary,
@@ -19,6 +20,7 @@ export const searchJobs = async (req, res) => {
     // Only use JSearch API - it already covers Google Jobs, LinkedIn, Indeed, and more
     const { jobs, debug } = await searchJSearchAPI({
       jobTitle,
+      jobTitles,
       locationType,
       location,
       minSalary,
@@ -264,11 +266,18 @@ export const runRecurringSearchNow = async (req, res) => {
 
     const { searchCriteria } = search;
 
-    // Run the search (use 'week' for more results in manual runs)
-    const { jobs, debug } = await searchJSearchAPI({
+    // Ensure jobTitles array exists (backwards compat: old searches have jobTitle string)
+    const searchParams = {
       ...searchCriteria,
       datePosted: 'week'
-    });
+    };
+    // If old format with jobTitle, convert to jobTitles array
+    if (searchCriteria.jobTitle && !searchCriteria.jobTitles) {
+      searchParams.jobTitles = [searchCriteria.jobTitle];
+    }
+
+    // Run the search (use 'week' for more results in manual runs)
+    const { jobs, debug } = await searchJSearchAPI(searchParams);
 
     console.log(`Manual run of search ${searchId}: found ${jobs.length} jobs`);
 

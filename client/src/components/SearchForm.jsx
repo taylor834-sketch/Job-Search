@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import Select from 'react-select';
 import Slider from 'rc-slider';
 import 'rc-slider/assets/index.css';
@@ -43,17 +43,46 @@ const usCities = {
 };
 
 function SearchForm({ onResults, onLoading, onError }) {
-  const [jobTitle, setJobTitle] = useState('');
+  const [jobTitles, setJobTitles] = useState([]); // Array of job title strings
+  const [titleInput, setTitleInput] = useState(''); // Current input value
   const [locationTypes, setLocationTypes] = useState([]);
   const [location, setLocation] = useState('');
   const [locationSuggestions, setLocationSuggestions] = useState([]);
   const [salaryRange, setSalaryRange] = useState([0, 300000]);
   const [datePosted, setDatePosted] = useState('week');
+  const titleInputRef = useRef(null);
 
   // Check if location input should be shown
   const showLocationInput = locationTypes.some(
     type => type.value === 'onsite' || type.value === 'hybrid'
   );
+
+  // Add a job title tag
+  const addJobTitle = (title) => {
+    const trimmed = title.trim();
+    if (trimmed && !jobTitles.includes(trimmed)) {
+      setJobTitles([...jobTitles, trimmed]);
+    }
+    setTitleInput('');
+  };
+
+  // Remove a job title tag
+  const removeJobTitle = (titleToRemove) => {
+    setJobTitles(jobTitles.filter(t => t !== titleToRemove));
+  };
+
+  // Handle key press in title input
+  const handleTitleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (titleInput.trim()) {
+        addJobTitle(titleInput);
+      }
+    } else if (e.key === 'Backspace' && !titleInput && jobTitles.length > 0) {
+      // Remove last tag when backspace on empty input
+      removeJobTitle(jobTitles[jobTitles.length - 1]);
+    }
+  };
 
   // Handle location input change with autocomplete
   const handleLocationChange = (e) => {
@@ -97,8 +126,14 @@ function SearchForm({ onResults, onLoading, onError }) {
     e.preventDefault();
     onError(null);
 
-    if (!jobTitle.trim()) {
-      onError('Please enter a job title');
+    // Get all titles: tags + any remaining input
+    const allTitles = [...jobTitles];
+    if (titleInput.trim()) {
+      allTitles.push(titleInput.trim());
+    }
+
+    if (allTitles.length === 0) {
+      onError('Please enter at least one job title');
       return;
     }
 
@@ -111,7 +146,7 @@ function SearchForm({ onResults, onLoading, onError }) {
 
     try {
       const searchParams = {
-        jobTitle: jobTitle.trim(),
+        jobTitles: allTitles, // Now an array
         locationType: locationTypes.map(opt => opt.value),
         location: showLocationInput ? location.trim() : undefined,
         minSalary: salaryRange[0] > 0 ? salaryRange[0] : null,
@@ -135,15 +170,34 @@ function SearchForm({ onResults, onLoading, onError }) {
   return (
     <form className="search-form" onSubmit={handleSubmit}>
       <div className="form-group">
-        <label htmlFor="jobTitle">Job Title *</label>
-        <input
-          id="jobTitle"
-          type="text"
-          value={jobTitle}
-          onChange={(e) => setJobTitle(e.target.value)}
-          placeholder="e.g., Software Engineer, Product Manager"
-          className="text-input"
-        />
+        <label htmlFor="jobTitle">Job Titles * <span className="label-hint">(Press Enter to add multiple)</span></label>
+        <div className="tag-input-container" onClick={() => titleInputRef.current?.focus()}>
+          {jobTitles.map((title, idx) => (
+            <span key={idx} className="job-title-tag">
+              {title}
+              <button
+                type="button"
+                className="tag-remove"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  removeJobTitle(title);
+                }}
+              >
+                ×
+              </button>
+            </span>
+          ))}
+          <input
+            ref={titleInputRef}
+            id="jobTitle"
+            type="text"
+            value={titleInput}
+            onChange={(e) => setTitleInput(e.target.value)}
+            onKeyDown={handleTitleKeyDown}
+            placeholder={jobTitles.length === 0 ? "e.g., Accounting (press Enter to add)" : "Add another title..."}
+            className="tag-input"
+          />
+        </div>
       </div>
 
       <div className="form-row">
