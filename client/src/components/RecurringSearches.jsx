@@ -274,9 +274,9 @@ function RecurringSearches({ onRegisterRefresh }) {
                         className="recurring-run-now"
                         onClick={() => handleRunNow(search)}
                         disabled={runningSearchId === search.id}
-                        title="Run this search now and send email"
+                        title="Run this search now and send email (may take up to 2 minutes)"
                       >
-                        {runningSearchId === search.id ? '⏳' : '▶'} Run Now
+                        {runningSearchId === search.id ? '⏳ Running...' : '▶ Run Now'}
                       </button>
                       <button
                         className={`recurring-toggle ${search.isActive ? 'recurring-toggle--on' : 'recurring-toggle--off'}`}

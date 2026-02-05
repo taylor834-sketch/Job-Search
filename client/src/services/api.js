@@ -6,10 +6,24 @@ const API_BASE_URL = import.meta.env.VITE_API_URL ||
 
 export const searchJobs = async (searchParams) => {
   try {
-    const response = await axios.post(`${API_BASE_URL}/jobs/search`, searchParams);
+    // Use longer timeout for searches with multiple job titles
+    const response = await axios.post(`${API_BASE_URL}/jobs/search`, searchParams, {
+      timeout: 90000 // 90 seconds timeout
+    });
     return response.data;
   } catch (error) {
     console.error('API Error:', error);
+
+    // Check for timeout specifically
+    if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+      throw new Error('Search timed out. Try searching for fewer job titles or try again.');
+    }
+
+    // Check for network error (server may be sleeping)
+    if (error.code === 'ERR_NETWORK' || !error.response) {
+      throw new Error('Connection error. The server may be waking up - please try again in 30 seconds.');
+    }
+
     throw new Error(
       error.response?.data?.error ||
       'Failed to search for jobs. Please check your connection and try again.'
@@ -108,13 +122,22 @@ export const getApiStatus = async () => {
 
 export const runRecurringSearchNow = async (searchId) => {
   try {
-    const response = await axios.post(`${API_BASE_URL}/jobs/recurring/${searchId}/run`);
+    // This operation can take a while (API calls + email sending), so use longer timeout
+    const response = await axios.post(`${API_BASE_URL}/jobs/recurring/${searchId}/run`, {}, {
+      timeout: 120000 // 2 minutes timeout
+    });
     return response.data;
   } catch (error) {
     console.error('Run Search Now Error:', error);
+
+    // Check for timeout specifically
+    if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+      throw new Error('Request timed out. The search may still be running - check your email in a few minutes.');
+    }
+
     throw new Error(
       error.response?.data?.error ||
-      'Failed to run search'
+      'Failed to run search. The server may be waking up - try again in 30 seconds.'
     );
   }
 };
