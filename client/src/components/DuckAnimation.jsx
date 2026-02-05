@@ -3,7 +3,7 @@ import './DuckAnimation.css';
 function DuckAnimation() {
   return (
     <div className="duck-scene">
-      {/* Pixel art duck that waddles and dives into the bag */}
+      {/* Pixel art duck that waddles, jumps with flapping wings, and dives into the bag */}
       <div className="pixel-duck">
         {/* Duck built with pixel blocks */}
         <div className="duck-pixels">
@@ -17,11 +17,16 @@ function DuckAnimation() {
           {/* Row 4 - head with beak */}
           <div className="pixel yellow" style={{gridColumn: '2/6', gridRow: 4}}></div>
           <div className="pixel orange" style={{gridColumn: '6/8', gridRow: 4}}></div>
-          {/* Row 5 - body top */}
+          {/* Row 5 - body top with wing */}
           <div className="pixel yellow" style={{gridColumn: '1/6', gridRow: 5}}></div>
+          {/* Wing - will animate during flight */}
+          <div className="wing-container">
+            <div className="pixel dark-yellow wing wing-up" style={{gridColumn: '1/3', gridRow: 5}}></div>
+            <div className="pixel dark-yellow wing wing-mid" style={{gridColumn: '1/4', gridRow: 6}}></div>
+            <div className="pixel dark-yellow wing wing-down" style={{gridColumn: '2/4', gridRow: 7}}></div>
+          </div>
           {/* Row 6 - body */}
           <div className="pixel yellow" style={{gridColumn: '1/6', gridRow: 6}}></div>
-          <div className="pixel dark-yellow wing" style={{gridColumn: '2/4', gridRow: 6}}></div>
           {/* Row 7 - body bottom */}
           <div className="pixel yellow" style={{gridColumn: '1/6', gridRow: 7}}></div>
           {/* Row 8 - legs */}
@@ -33,24 +38,33 @@ function DuckAnimation() {
         </div>
       </div>
 
-      {/* Pixel art money bag */}
+      {/* Pixel art BANK HEIST money bag */}
       <div className="pixel-money-bag">
         <div className="bag-pixels">
-          {/* Opening at top */}
-          <div className="pixel dark-brown" style={{gridColumn: '3/8', gridRow: 1}}></div>
-          {/* Tie */}
-          <div className="pixel tan" style={{gridColumn: '4/7', gridRow: 2}}></div>
-          {/* Bag body rows */}
-          <div className="pixel brown" style={{gridColumn: '2/9', gridRow: 3}}></div>
-          <div className="pixel brown" style={{gridColumn: '1/10', gridRow: 4}}></div>
-          <div className="pixel brown" style={{gridColumn: '1/10', gridRow: 5}}></div>
-          <div className="pixel green dollar-sign" style={{gridColumn: '4/7', gridRow: 5}}></div>
-          <div className="pixel brown" style={{gridColumn: '1/10', gridRow: 6}}></div>
-          <div className="pixel brown" style={{gridColumn: '1/10', gridRow: 7}}></div>
-          <div className="pixel brown" style={{gridColumn: '2/9', gridRow: 8}}></div>
+          {/* Gathered top / rope tie - distinctive bank bag look */}
+          <div className="pixel tan rope" style={{gridColumn: '5/6', gridRow: 1}}></div>
+          <div className="pixel tan rope" style={{gridColumn: '5/6', gridRow: 2}}></div>
+          {/* Knot at top */}
+          <div className="pixel brown-dark" style={{gridColumn: '3/4', gridRow: 2}}></div>
+          <div className="pixel brown-dark" style={{gridColumn: '7/8', gridRow: 2}}></div>
+          {/* Gathered neck */}
+          <div className="pixel burlap" style={{gridColumn: '4/7', gridRow: 3}}></div>
+          {/* Bag body - wider burlap sack shape */}
+          <div className="pixel burlap" style={{gridColumn: '3/8', gridRow: 4}}></div>
+          <div className="pixel burlap-light" style={{gridColumn: '4/5', gridRow: 4}}></div>
+          <div className="pixel burlap" style={{gridColumn: '2/9', gridRow: 5}}></div>
+          <div className="pixel burlap-light" style={{gridColumn: '3/5', gridRow: 5}}></div>
+          <div className="pixel burlap" style={{gridColumn: '1/10', gridRow: 6}}></div>
+          <div className="pixel burlap-light" style={{gridColumn: '2/4', gridRow: 6}}></div>
+          <div className="pixel burlap" style={{gridColumn: '1/10', gridRow: 7}}></div>
+          <div className="pixel burlap-light" style={{gridColumn: '2/4', gridRow: 7}}></div>
+          <div className="pixel burlap" style={{gridColumn: '1/10', gridRow: 8}}></div>
+          {/* Bulging bottom */}
+          <div className="pixel burlap" style={{gridColumn: '2/9', gridRow: 9}}></div>
+          <div className="pixel burlap-dark" style={{gridColumn: '3/8', gridRow: 9}}></div>
         </div>
 
-        {/* Dollar sign overlay */}
+        {/* Big dollar sign on bag - bank heist style */}
         <div className="bag-dollar-text">$</div>
 
         {/* Splash effects - pixel style money flying out */}
