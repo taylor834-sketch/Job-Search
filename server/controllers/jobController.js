@@ -1,7 +1,7 @@
 import { searchJSearchAPI } from '../scrapers/jsearchAPI.js';
 import { generateExcelFile } from '../utils/excelExport.js';
 import { sendJobAlertEmail } from '../utils/emailService.js';
-import { saveSavedSearch, getAllSavedSearches, deleteSavedSearch, toggleSearchActive, updateSavedSearch, getApiUsageStats } from '../utils/database.js';
+import { saveSavedSearch, getAllSavedSearches, deleteSavedSearch, toggleSearchActive, updateSavedSearch, getApiUsageStats, getSavedSearch, updateLastRun } from '../utils/database.js';
 
 export const searchJobs = async (req, res) => {
   try {
@@ -242,6 +242,59 @@ export const getApiStatus = async (req, res) => {
 
   } catch (error) {
     console.error('Error getting API status:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+};
+
+export const runRecurringSearchNow = async (req, res) => {
+  try {
+    const { searchId } = req.params;
+
+    // Get the saved search
+    const search = await getSavedSearch(searchId);
+    if (!search) {
+      return res.status(404).json({
+        success: false,
+        error: 'Search not found'
+      });
+    }
+
+    const { searchCriteria } = search;
+
+    // Run the search (use 'week' for more results in manual runs)
+    const { jobs, debug } = await searchJSearchAPI({
+      ...searchCriteria,
+      datePosted: 'week'
+    });
+
+    console.log(`Manual run of search ${searchId}: found ${jobs.length} jobs`);
+
+    if (jobs.length === 0) {
+      return res.json({
+        success: true,
+        message: 'Search completed but no jobs found. No email sent.',
+        jobsFound: 0,
+        debug
+      });
+    }
+
+    // Send the email
+    await sendJobAlertEmail(search.userEmail, jobs, searchCriteria);
+
+    // Update last run time
+    await updateLastRun(searchId);
+
+    res.json({
+      success: true,
+      message: `Email sent with ${jobs.length} job(s)!`,
+      jobsFound: jobs.length
+    });
+
+  } catch (error) {
+    console.error('Error running search now:', error);
     res.status(500).json({
       success: false,
       error: error.message

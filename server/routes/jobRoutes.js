@@ -7,7 +7,8 @@ import {
   deleteRecurringSearch,
   toggleRecurringSearch,
   updateRecurringSearch,
-  getApiStatus
+  getApiStatus,
+  runRecurringSearchNow
 } from '../controllers/jobController.js';
 
 const router = express.Router();
@@ -17,6 +18,7 @@ router.post('/export', exportToExcel);
 router.post('/recurring', createRecurringSearch);
 router.get('/recurring', getRecurringSearches);
 router.get('/api-status', getApiStatus);
+router.post('/recurring/:searchId/run', runRecurringSearchNow);
 router.patch('/recurring/:searchId/toggle', toggleRecurringSearch);
 router.patch('/recurring/:searchId', updateRecurringSearch);
 router.delete('/recurring/:searchId', deleteRecurringSearch);

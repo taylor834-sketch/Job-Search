@@ -105,3 +105,16 @@ export const getApiStatus = async () => {
     throw new Error('Failed to get API status');
   }
 };
+
+export const runRecurringSearchNow = async (searchId) => {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/jobs/recurring/${searchId}/run`);
+    return response.data;
+  } catch (error) {
+    console.error('Run Search Now Error:', error);
+    throw new Error(
+      error.response?.data?.error ||
+      'Failed to run search'
+    );
+  }
+};

@@ -190,6 +190,32 @@
   color: #667eea;
 }
 
+/* Run Now button */
+.recurring-run-now {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  border-radius: 6px;
+  padding: 5px 12px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: white;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.recurring-run-now:hover:not(:disabled) {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.recurring-run-now:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 /* Meta row: frequency, email, dates */
 .recurring-item-meta {
   display: flex;

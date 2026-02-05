@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import Select from 'react-select';
-import { getRecurringSearches, deleteRecurringSearch, toggleRecurringSearch, updateRecurringSearch } from '../services/api';
+import { getRecurringSearches, deleteRecurringSearch, toggleRecurringSearch, updateRecurringSearch, runRecurringSearchNow } from '../services/api';
 import './RecurringSearches.css';
 
 const dayOptions = [
@@ -26,6 +26,7 @@ function RecurringSearches({ onRegisterRefresh }) {
   const [editDayOfWeek, setEditDayOfWeek] = useState(null);
   const [editEmail, setEditEmail] = useState('');
   const [editSaving, setEditSaving] = useState(false);
+  const [runningSearchId, setRunningSearchId] = useState(null); // track which search is running
 
   const fetchSearches = useCallback(async () => {
     try {
@@ -67,6 +68,25 @@ function RecurringSearches({ onRegisterRefresh }) {
       setSearches(prev => prev.filter(s => s.id !== searchId));
     } catch {
       setError('Failed to delete search');
+    }
+  };
+
+  const handleRunNow = async (search) => {
+    try {
+      setRunningSearchId(search.id);
+      setError(null);
+      const result = await runRecurringSearchNow(search.id);
+      if (result.jobsFound > 0) {
+        alert(`Success! Email sent with ${result.jobsFound} job(s).`);
+      } else {
+        alert('Search completed but no jobs found. No email was sent.\n\nThis might be because:\n- Your API quota is exceeded\n- No matching jobs exist for your criteria');
+      }
+      // Refresh to update lastRun
+      fetchSearches();
+    } catch (e) {
+      setError(`Failed to run search: ${e.message}`);
+    } finally {
+      setRunningSearchId(null);
     }
   };
 
@@ -193,6 +213,14 @@ function RecurringSearches({ onRegisterRefresh }) {
                       {formatCriteria(search.searchCriteria)}
                     </div>
                     <div className="recurring-item-actions">
+                      <button
+                        className="recurring-run-now"
+                        onClick={() => handleRunNow(search)}
+                        disabled={runningSearchId === search.id}
+                        title="Run this search now and send email"
+                      >
+                        {runningSearchId === search.id ? '⏳' : '▶'} Run Now
+                      </button>
                       <button
                         className={`recurring-toggle ${search.isActive ? 'recurring-toggle--on' : 'recurring-toggle--off'}`}
                         onClick={() => handleToggle(search)}
