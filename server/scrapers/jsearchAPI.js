@@ -595,10 +595,15 @@ export const searchJSearchAPI = async (filters, options = {}) => {
     // Block gig/freelance platforms and low-quality job aggregators.
     // These return contract gigs, not real full-time positions.
     const blockedSources = [
+      // Gig / freelance platforms
       'upwork', 'fiverr', 'freelancer', 'toptal', 'guru.com', 'peopleperhour',
       'flexjobs', 'bark', 'thumbtack', 'taskrabbit', 'wonolo', 'instawork',
+      // Low-quality aggregators / spam sites
       'snagajob', 'craigslist', 'talent.com', 'jooble', 'adzuna', 'jobrapido',
-      'neuvoo', 'careerjet', 'learn4good', 'ladders'
+      'neuvoo', 'careerjet', 'learn4good', 'ladders',
+      'the elite job', 'theelitejob', 'elitejob',
+      'recruit.net', 'jobgether', 'jobright',
+      'lensa', 'zippia', 'salary.com', 'simplyhired'
     ];
 
     debug.sourceFilteredOut = 0;
@@ -712,6 +717,11 @@ export const searchJSearchAPI = async (filters, options = {}) => {
 
     const jobsWithSalary = filteredJobs.filter(job => job.salary !== 'Not specified').length;
     log(`Returning ${filteredJobs.length} jobs (${jobsWithSalary} with salary). Total time: ${((Date.now() - searchStartTime) / 1000).toFixed(1)}s`);
+
+    // Build a Google Jobs search URL so users can compare results
+    // Google Jobs URL format: google.com/search?q=<query>+jobs&ibp=htl;jobs
+    const googleQuery = titlesToSearch[0] + queryModifiers + ' jobs';
+    debug.googleJobsUrl = `https://www.google.com/search?q=${encodeURIComponent(googleQuery)}&ibp=htl;jobs`;
 
     return { jobs: filteredJobs, debug };
 

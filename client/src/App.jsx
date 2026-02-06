@@ -229,6 +229,18 @@ function App() {
                             : 'Try relaxing one or more filters to get results.'}
                 </p>
 
+                {/* Google Jobs comparison link */}
+                {debugInfo.googleJobsUrl && (
+                  <div className="debug-row">
+                    <span className="debug-label">Compare results</span>
+                    <span className="debug-value">
+                      <a href={debugInfo.googleJobsUrl} target="_blank" rel="noopener noreferrer" className="debug-google-link">
+                        🔍 Open in Google Jobs
+                      </a>
+                    </span>
+                  </div>
+                )}
+
                 {/* Copy Debug Report button */}
                 <button
                   className="debug-copy-btn"
@@ -282,6 +294,13 @@ ${JSON.stringify(debugInfo, null, 2)}
         {!loading && jobs.length > 0 && (
           <>
             <JobActions jobs={jobs} searchCriteria={searchCriteria} selectedJobs={selectedJobs} onSearchCreated={handleSearchCreated} />
+            {debugInfo?.googleJobsUrl && (
+              <div className="google-jobs-link">
+                <a href={debugInfo.googleJobsUrl} target="_blank" rel="noopener noreferrer">
+                  🔍 Compare with Google Jobs
+                </a>
+              </div>
+            )}
             <JobResults jobs={jobs} selectedJobs={selectedJobs} onToggleSelect={handleToggleSelect} onSelectAll={handleSelectAll} />
           </>
         )}
