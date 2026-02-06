@@ -309,9 +309,11 @@ export const runRecurringSearchNow = async (req, res) => {
         const { searchCriteria } = search;
 
         // Ensure jobTitles array exists (backwards compat: old searches have jobTitle string)
+        // Force datePosted to 'week' for Run Now to get better results
+        const { datePosted: _ignored, ...criteriaWithoutDate } = searchCriteria;
         const searchParams = {
-          ...searchCriteria,
-          datePosted: 'week'
+          ...criteriaWithoutDate,
+          datePosted: 'week'  // Always use 'week' for manual runs
         };
         // If old format with jobTitle, convert to jobTitles array
         if (searchCriteria.jobTitle && !searchCriteria.jobTitles) {
@@ -320,6 +322,7 @@ export const runRecurringSearchNow = async (req, res) => {
 
         status.message = 'Searching for jobs...';
         log(`Starting search for: ${JSON.stringify(searchParams.jobTitles || searchParams.jobTitle)}`);
+        log(`Search params: datePosted=${searchParams.datePosted}, locationType=${JSON.stringify(searchParams.locationType)}`);
 
         // Run the search (use 'week' for more results in manual runs)
         // Skip slow salary scraping for faster email delivery
