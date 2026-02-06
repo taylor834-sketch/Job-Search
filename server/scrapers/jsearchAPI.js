@@ -212,8 +212,16 @@ export const searchJSearchAPI = async (filters, options = {}) => {
     const MAX_TOTAL_PAGES = 5;
     const pagesPerTitle = Math.max(1, Math.floor(MAX_TOTAL_PAGES / titlesToSearch.length));
 
+    const MAX_TOTAL_TIME = 60000; // 60 seconds max for all API calls combined
+
     for (const title of titlesToSearch) {
       if (quotaError) break;
+
+      // Check total elapsed time to avoid exceeding client timeout
+      if (Date.now() - searchStartTime > MAX_TOTAL_TIME) {
+        log(`Total search time exceeded ${MAX_TOTAL_TIME / 1000}s - returning ${jobs.length} jobs collected so far`);
+        break;
+      }
 
       const query = title + queryModifiers;
       log(`Fetching: "${query}"`);
@@ -227,45 +235,89 @@ export const searchJSearchAPI = async (filters, options = {}) => {
 
       // Fetch pages for this title
       for (let page = 1; page <= pagesPerTitle; page++) {
-        try {
-          pagesRequested++;
-          const response = await axios.request({
-            method: 'GET',
-            url: 'https://jsearch.p.rapidapi.com/search',
-            params: { ...baseParams, page: String(page) },
-            headers
-          });
-
-          // Check for quota exceeded message in response body (RapidAPI returns 200 with error message)
-          if (response.data.message && response.data.message.includes('exceeded')) {
-            console.error('JSearch API: Monthly quota exceeded (message in response)');
-            quotaError = response.data.message;
-            await recordApiCall(1, 'failure', 'quota_exceeded');
-            break;
-          }
-
-          const pageJobs = response.data.data || [];
-          if (pageJobs.length === 0) break; // No more results for this title
-
-          // Deduplicate: only add jobs we haven't seen
-          let newJobs = 0;
-          for (const job of pageJobs) {
-            const jobId = job.job_id || job.job_apply_link || `${job.job_title}-${job.employer_name}`;
-            if (!seenJobIds.has(jobId)) {
-              seenJobIds.add(jobId);
-              jobs.push(job);
-              newJobs++;
-            }
-          }
-          log(`"${title}" page ${page}: ${pageJobs.length} jobs (${newJobs} new)`);
-        } catch (pageError) {
-          console.warn(`JSearch "${title}" page ${page} failed:`, pageError.message);
-          // Record the failed page request
-          const errorType = pageError.response?.status === 429 ? 'rate_limit' :
-                            pageError.response?.status === 403 ? 'quota_exceeded' : 'other';
-          await recordApiCall(1, 'failure', errorType);
-          break; // Stop paginating on error
+        // Check time budget before each request
+        if (Date.now() - searchStartTime > MAX_TOTAL_TIME) {
+          log(`Time budget exceeded before "${title}" page ${page}`);
+          break;
         }
+
+        let response;
+        let retried = false;
+
+        // Retry logic: on page 1, retry once if we get 0 results or timeout
+        for (let attempt = 0; attempt < 2; attempt++) {
+          try {
+            pagesRequested++;
+            response = await axios.request({
+              method: 'GET',
+              url: 'https://jsearch.p.rapidapi.com/search',
+              params: { ...baseParams, page: String(page) },
+              headers,
+              timeout: 30000 // 30 seconds per API request to prevent hanging
+            });
+
+            // Check for quota exceeded message in response body (RapidAPI returns 200 with error message)
+            if (response.data.message && response.data.message.includes('exceeded')) {
+              console.error('JSearch API: Monthly quota exceeded (message in response)');
+              quotaError = response.data.message;
+              await recordApiCall(1, 'failure', 'quota_exceeded');
+              break;
+            }
+
+            const pageJobs = response.data.data || [];
+
+            // If page 1 returned 0 results and we haven't retried yet, try once more
+            // The JSearch API is intermittently slow/empty for some queries
+            if (page === 1 && attempt === 0 && pageJobs.length === 0 && !quotaError) {
+              log(`"${title}" page 1 returned 0 results - retrying once...`);
+              retried = true;
+              continue;
+            }
+
+            await recordApiCall(1, 'success', null);
+            break; // Success, exit retry loop
+          } catch (pageError) {
+            const isTimeout = pageError.code === 'ECONNABORTED' || pageError.message?.includes('timeout');
+
+            // If page 1 timed out and we haven't retried, try once more
+            if (page === 1 && attempt === 0 && isTimeout) {
+              log(`"${title}" page 1 timed out - retrying once...`);
+              retried = true;
+              await recordApiCall(1, 'failure', 'timeout');
+              continue;
+            }
+
+            if (isTimeout) {
+              log(`"${title}" page ${page} timed out after 30s - skipping remaining pages for this title`);
+            } else {
+              console.warn(`JSearch "${title}" page ${page} failed:`, pageError.message);
+            }
+            // Record the failed page request
+            const errorType = pageError.response?.status === 429 ? 'rate_limit' :
+                              pageError.response?.status === 403 ? 'quota_exceeded' :
+                              isTimeout ? 'timeout' : 'other';
+            await recordApiCall(1, 'failure', errorType);
+            response = null;
+            break; // Exit retry loop on non-retryable error
+          }
+        }
+
+        if (quotaError || !response) break; // Stop paginating
+
+        const pageJobs = response.data.data || [];
+        if (pageJobs.length === 0) break; // No more results for this title
+
+        // Deduplicate: only add jobs we haven't seen
+        let newJobs = 0;
+        for (const job of pageJobs) {
+          const jobId = job.job_id || job.job_apply_link || `${job.job_title}-${job.employer_name}`;
+          if (!seenJobIds.has(jobId)) {
+            seenJobIds.add(jobId);
+            jobs.push(job);
+            newJobs++;
+          }
+        }
+        log(`"${title}" page ${page}: ${pageJobs.length} jobs (${newJobs} new)${retried ? ' (after retry)' : ''}`);
       }
     }
 
@@ -590,8 +642,12 @@ export const searchJSearchAPI = async (filters, options = {}) => {
     return { jobs: filteredJobs, debug };
 
   } catch (error) {
+    const isTimeout = error.code === 'ECONNABORTED' || error.message?.includes('timeout');
     let errorType = 'other';
-    if (error.response?.status === 403) {
+    if (isTimeout) {
+      console.error('JSearch API: Request timed out');
+      errorType = 'timeout';
+    } else if (error.response?.status === 403) {
       console.error('JSearch API: Invalid API key or quota exceeded');
       errorType = 'quota_exceeded';
     } else if (error.response?.status === 429) {
@@ -602,6 +658,6 @@ export const searchJSearchAPI = async (filters, options = {}) => {
     }
     // Record failed API call
     await recordApiCall(1, 'failure', errorType);
-    return { jobs: [], debug: { error: error.message } };
+    return { jobs: [], debug: { error: isTimeout ? 'Search timed out - the job search API was too slow. Please try again.' : error.message } };
   }
 };

@@ -10,8 +10,10 @@ const runScheduledSearch = async (search) => {
     const { searchCriteria } = search;
 
     // Ensure jobTitles array exists (backwards compat: old searches have jobTitle string)
+    // Strip any saved datePosted to ensure frequency-based date is used
+    const { datePosted: _ignored, ...criteriaWithoutDate } = searchCriteria;
     const searchParams = {
-      ...searchCriteria,
+      ...criteriaWithoutDate,
       datePosted: search.frequency === 'weekly' ? 'week' : 'today'
     };
     // If old format with jobTitle, convert to jobTitles array
