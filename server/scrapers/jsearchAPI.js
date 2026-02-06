@@ -591,13 +591,47 @@ export const searchJSearchAPI = async (filters, options = {}) => {
     debug.afterRemoteFilter = transformedJobs.length + debug.remoteFilteredOut; // before remote ran
     debug.afterSalaryFilter = transformedJobs.length; // after salary + remote both ran
 
+    // === SOURCE QUALITY FILTER ===
+    // Block gig/freelance platforms and low-quality job aggregators.
+    // These return contract gigs, not real full-time positions.
+    const blockedSources = [
+      'upwork', 'fiverr', 'freelancer', 'toptal', 'guru.com', 'peopleperhour',
+      'flexjobs', 'bark', 'thumbtack', 'taskrabbit', 'wonolo', 'instawork',
+      'snagajob', 'craigslist', 'talent.com', 'jooble', 'adzuna', 'jobrapido',
+      'neuvoo', 'careerjet', 'learn4good', 'ladders'
+    ];
+
+    debug.sourceFilteredOut = 0;
+    debug.sourceReasons = [];
+
+    const sourceFilteredJobs = transformedJobs.filter(job => {
+      const src = (job.source || '').toLowerCase();
+      const link = (job.link || '').toLowerCase();
+
+      const blockedBy = blockedSources.find(blocked =>
+        src.includes(blocked) || link.includes(blocked)
+      );
+
+      if (blockedBy) {
+        debug.sourceFilteredOut++;
+        debug.sourceReasons.push({ title: job.title, source: job.source, blockedBy });
+        return false;
+      }
+      return true;
+    });
+
+    if (debug.sourceFilteredOut > 0) {
+      log(`Source filter: dropped ${debug.sourceFilteredOut} jobs from blocked sources`);
+    }
+    debug.afterSourceFilter = sourceFilteredJobs.length;
+
     // === DATE FILTER ===
     // JSearch API's date_posted param is unreliable — it often returns jobs older than requested.
     // We enforce the date filter ourselves by checking each job's postingDate.
     debug.dateFilteredOut = 0;
     debug.dateReasons = [];
 
-    let dateFilteredJobs = transformedJobs;
+    let dateFilteredJobs = sourceFilteredJobs;
     if (datePosted && datePosted !== 'all') {
       const now = new Date();
       // Set cutoff to start of the relevant day (midnight UTC)
@@ -614,7 +648,7 @@ export const searchJSearchAPI = async (filters, options = {}) => {
       }
 
       if (cutoffDate) {
-        dateFilteredJobs = transformedJobs.filter(job => {
+        dateFilteredJobs = sourceFilteredJobs.filter(job => {
           const jobDate = new Date(job.postingDate);
           if (isNaN(jobDate.getTime())) return true; // keep jobs with unparseable dates
           if (jobDate >= cutoffDate) return true;
