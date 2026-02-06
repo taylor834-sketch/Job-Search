@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
-import { getApiStatus } from '../services/api';
+import { getApiStatus, testEmail as testEmailApi } from '../services/api';
 import './Settings.css';
 
 function Settings({ isOpen, onClose }) {
   const [apiStatus, setApiStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [emailTesting, setEmailTesting] = useState(false);
+  const [emailResult, setEmailResult] = useState(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -23,6 +25,19 @@ function Settings({ isOpen, onClose }) {
       setError(err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleTestEmail = async () => {
+    try {
+      setEmailTesting(true);
+      setEmailResult(null);
+      const result = await testEmailApi();
+      setEmailResult({ success: true, message: result.message });
+    } catch (err) {
+      setEmailResult({ success: false, message: err.message });
+    } finally {
+      setEmailTesting(false);
     }
   };
 
@@ -174,6 +189,59 @@ function Settings({ isOpen, onClose }) {
 
                 <button className="api-refresh-btn" onClick={fetchApiStatus}>
                   Refresh Status
+                </button>
+              </>
+            )}
+          </div>
+
+          <div className="settings-section">
+            <h3>Email Configuration</h3>
+
+            {!loading && apiStatus?.emailConfig && (
+              <>
+                <div className="api-status-card">
+                  <div className="api-status-row">
+                    <span className="api-label">Email Configured</span>
+                    <span className={`api-value ${apiStatus.emailConfig.configured ? 'status-ok' : 'status-error'}`}>
+                      {apiStatus.emailConfig.configured ? 'Yes' : 'No - Add EMAIL_USER and EMAIL_PASSWORD to .env'}
+                    </span>
+                  </div>
+                  {apiStatus.emailConfig.configured && (
+                    <>
+                      <div className="api-status-row" style={{ marginTop: '10px' }}>
+                        <span className="api-label">Service</span>
+                        <span className="api-value">{apiStatus.emailConfig.service}</span>
+                      </div>
+                      <div className="api-status-row" style={{ marginTop: '10px' }}>
+                        <span className="api-label">Sender</span>
+                        <span className="api-value">{apiStatus.emailConfig.user}</span>
+                      </div>
+                      <div className="api-status-row" style={{ marginTop: '10px' }}>
+                        <span className="api-label">Admin Email</span>
+                        <span className="api-value">{apiStatus.emailConfig.adminEmail}</span>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {emailResult && (
+                  <div className={`email-test-result ${emailResult.success ? 'email-test-success' : 'email-test-error'}`}>
+                    {emailResult.message}
+                  </div>
+                )}
+
+                <button
+                  className="api-refresh-btn"
+                  onClick={handleTestEmail}
+                  disabled={emailTesting || !apiStatus.emailConfig.configured}
+                  style={{ opacity: (!apiStatus.emailConfig.configured || emailTesting) ? 0.6 : 1 }}
+                >
+                  {emailTesting ? (
+                    <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                      <span className="mini-spinner" style={{ borderTopColor: 'white', borderColor: 'rgba(255,255,255,0.3)' }}></span>
+                      Sending...
+                    </span>
+                  ) : 'Send Test Email'}
                 </button>
               </>
             )}

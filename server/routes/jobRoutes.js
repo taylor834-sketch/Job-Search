@@ -8,6 +8,7 @@ import {
   toggleRecurringSearch,
   updateRecurringSearch,
   getApiStatus,
+  testEmail,
   runRecurringSearchNow,
   getRunNowStatus,
   getAllRunStatuses
@@ -20,6 +21,7 @@ router.post('/export', exportToExcel);
 router.post('/recurring', createRecurringSearch);
 router.get('/recurring', getRecurringSearches);
 router.get('/api-status', getApiStatus);
+router.post('/test-email', testEmail);
 router.post('/recurring/:searchId/run', runRecurringSearchNow);
 router.get('/run-status/:statusKey', getRunNowStatus);
 router.get('/run-statuses', getAllRunStatuses);

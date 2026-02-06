@@ -1,6 +1,6 @@
 import { searchJSearchAPI } from '../scrapers/jsearchAPI.js';
 import { generateExcelFile } from '../utils/excelExport.js';
-import { sendJobAlertEmail } from '../utils/emailService.js';
+import { sendJobAlertEmail, sendTestEmail as sendTestEmailService, checkEmailConfig } from '../utils/emailService.js';
 import { saveSavedSearch, getAllSavedSearches, deleteSavedSearch, toggleSearchActive, updateSavedSearch, getApiUsageStats, getSavedSearch, updateLastRun } from '../utils/database.js';
 
 export const searchJobs = async (req, res) => {
@@ -236,14 +236,37 @@ export const updateRecurringSearch = async (req, res) => {
 export const getApiStatus = async (req, res) => {
   try {
     const stats = await getApiUsageStats();
+    const emailConfig = checkEmailConfig();
 
     res.json({
       success: true,
-      ...stats
+      ...stats,
+      emailConfig
     });
 
   } catch (error) {
     console.error('Error getting API status:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+};
+
+export const testEmail = async (req, res) => {
+  try {
+    const { recipientEmail } = req.body;
+    const adminEmail = process.env.ADMIN_EMAIL || 'Taylor@realsimplerevops.com';
+    const emailTo = recipientEmail || adminEmail;
+
+    await sendTestEmailService(emailTo);
+
+    res.json({
+      success: true,
+      message: `Test email sent to ${emailTo}`
+    });
+  } catch (error) {
+    console.error('Error sending test email:', error);
     res.status(500).json({
       success: false,
       error: error.message

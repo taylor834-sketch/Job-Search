@@ -120,6 +120,20 @@ export const getApiStatus = async () => {
   }
 };
 
+export const testEmail = async (recipientEmail) => {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/jobs/test-email`, { recipientEmail }, {
+      timeout: 30000
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Test Email Error:', error);
+    throw new Error(
+      error.response?.data?.error || 'Failed to send test email'
+    );
+  }
+};
+
 export const runRecurringSearchNow = async (searchId) => {
   try {
     // This now returns immediately and runs in background
