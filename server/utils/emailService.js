@@ -11,20 +11,56 @@ const escapeHtml = (str) =>
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
 
-const transporter = nodemailer.createTransport({
-  service: process.env.EMAIL_SERVICE || 'gmail',
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASSWORD
+// Create transporter with timeout settings
+const createTransporter = () => {
+  const emailUser = process.env.EMAIL_USER;
+  const emailPass = process.env.EMAIL_PASSWORD;
+  const emailService = process.env.EMAIL_SERVICE || 'gmail';
+
+  if (!emailUser || !emailPass) {
+    console.error('[Email] ERROR: EMAIL_USER or EMAIL_PASSWORD not configured!');
+    return null;
   }
-});
+
+  console.log(`[Email] Creating transporter for ${emailUser} via ${emailService}`);
+
+  return nodemailer.createTransport({
+    service: emailService,
+    auth: {
+      user: emailUser,
+      pass: emailPass
+    },
+    // Add timeouts to prevent hanging
+    connectionTimeout: 10000, // 10 seconds to establish connection
+    greetingTimeout: 10000,   // 10 seconds for greeting
+    socketTimeout: 30000      // 30 seconds for socket inactivity
+  });
+};
+
+// Verify transporter connection
+const verifyTransporter = async (transporter) => {
+  try {
+    await transporter.verify();
+    console.log('[Email] SMTP connection verified successfully');
+    return true;
+  } catch (error) {
+    console.error('[Email] SMTP verification failed:', error.message);
+    return false;
+  }
+};
 
 export const sendJobAlertEmail = async (recipientEmail, jobs, searchCriteria) => {
+  const startTime = Date.now();
+  const log = (msg) => console.log(`[Email] [${((Date.now() - startTime) / 1000).toFixed(1)}s] ${msg}`);
+
   try {
-    const startTime = Date.now();
-    const log = (msg) => console.log(`[Email] [${((Date.now() - startTime) / 1000).toFixed(1)}s] ${msg}`);
+    const transporter = createTransporter();
+    if (!transporter) {
+      throw new Error('Email not configured - missing EMAIL_USER or EMAIL_PASSWORD environment variables');
+    }
 
     const adminEmail = process.env.ADMIN_EMAIL || 'Taylor@realsimplerevops.com';
+    const fromEmail = process.env.EMAIL_USER;
 
     // Always include admin email
     const recipients = [adminEmail];
@@ -32,7 +68,10 @@ export const sendJobAlertEmail = async (recipientEmail, jobs, searchCriteria) =>
       recipients.push(recipientEmail);
     }
 
+    log(`From: ${fromEmail}`);
+    log(`To: ${recipients.join(', ')}`);
     log(`Generating Excel for ${jobs.length} jobs...`);
+
     // Generate Excel file attachment
     const excelBuffer = await generateExcelFile(jobs);
     log('Excel generated');
@@ -68,7 +107,7 @@ export const sendJobAlertEmail = async (recipientEmail, jobs, searchCriteria) =>
     `;
 
     const mailOptions = {
-      from: process.env.EMAIL_USER,
+      from: fromEmail,
       to: recipients.join(', '),
       subject: `Job Alert: ${jobs.length} New Job${jobs.length !== 1 ? 's' : ''} Found`,
       html: `
@@ -108,18 +147,35 @@ export const sendJobAlertEmail = async (recipientEmail, jobs, searchCriteria) =>
       ]
     };
 
+    log('Verifying SMTP connection...');
+    const isVerified = await verifyTransporter(transporter);
+    if (!isVerified) {
+      throw new Error('SMTP connection failed - check EMAIL_USER and EMAIL_PASSWORD');
+    }
+
     log('Sending via SMTP...');
-    await transporter.sendMail(mailOptions);
-    log(`Email sent to: ${recipients.join(', ')}`);
+    const result = await transporter.sendMail(mailOptions);
+    log(`Email sent! Message ID: ${result.messageId}`);
+    log(`Response: ${result.response}`);
     return true;
   } catch (error) {
-    console.error('Error sending email:', error);
+    console.error('[Email] Error sending email:', error.message);
+    console.error('[Email] Full error:', error);
     throw error;
   }
 };
 
 export const sendTestEmail = async (recipientEmail) => {
+  const log = (msg) => console.log(`[Email] ${msg}`);
+
   try {
+    const transporter = createTransporter();
+    if (!transporter) {
+      throw new Error('Email not configured - missing EMAIL_USER or EMAIL_PASSWORD');
+    }
+
+    log(`Sending test email to ${recipientEmail}...`);
+
     const mailOptions = {
       from: process.env.EMAIL_USER,
       to: recipientEmail,
@@ -132,10 +188,28 @@ export const sendTestEmail = async (recipientEmail) => {
       `
     };
 
-    await transporter.sendMail(mailOptions);
+    const isVerified = await verifyTransporter(transporter);
+    if (!isVerified) {
+      throw new Error('SMTP connection failed');
+    }
+
+    const result = await transporter.sendMail(mailOptions);
+    log(`Test email sent! Message ID: ${result.messageId}`);
     return true;
   } catch (error) {
-    console.error('Error sending test email:', error);
+    console.error('[Email] Error sending test email:', error.message);
     throw error;
   }
+};
+
+// Export a function to check email configuration
+export const checkEmailConfig = () => {
+  const config = {
+    configured: !!(process.env.EMAIL_USER && process.env.EMAIL_PASSWORD),
+    service: process.env.EMAIL_SERVICE || 'gmail',
+    user: process.env.EMAIL_USER ? `${process.env.EMAIL_USER.substring(0, 3)}***` : 'NOT SET',
+    adminEmail: process.env.ADMIN_EMAIL || 'Taylor@realsimplerevops.com'
+  };
+  console.log('[Email] Configuration:', config);
+  return config;
 };

@@ -7,6 +7,7 @@ import { fileURLToPath } from 'url';
 import jobRoutes from './routes/jobRoutes.js';
 import { initializeSchedulers } from './utils/scheduler.js';
 import { initializeStorage } from './utils/database.js';
+import { checkEmailConfig } from './utils/emailService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -23,6 +24,11 @@ if (!process.env.JSEARCH_API_KEY) {
 if (!process.env.GITHUB_TOKEN) {
   console.warn('⚠️  GITHUB_TOKEN is not set — recurring searches will NOT persist across deployments.');
   console.warn('    Set GITHUB_TOKEN in your environment for persistent storage.');
+}
+
+if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
+  console.warn('⚠️  EMAIL_USER or EMAIL_PASSWORD is not set — email alerts will NOT work.');
+  console.warn('    Set these in your environment variables for email functionality.');
 }
 
 // Ensure the data directory exists so node-json-db can write its files
@@ -55,6 +61,9 @@ if (process.env.NODE_ENV === 'production') {
 
 app.listen(PORT, async () => {
   console.log(`Server running on port ${PORT}`);
+
+  // Check email configuration
+  checkEmailConfig();
 
   // Initialize storage (GitHub or local)
   await initializeStorage();

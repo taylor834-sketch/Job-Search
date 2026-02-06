@@ -27,7 +27,9 @@
       "Bash(# Find and kill whatever is on 3001 ss -tlnp | grep 3001 || netstat -tlnp)",
       "Bash(pkill:*)",
       "Bash(npm run build:*)",
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "Bash(git pull:*)",
+      "Bash(git stash:*)"
     ]
   }
 }
