@@ -8,6 +8,7 @@ function Settings({ isOpen, onClose }) {
   const [error, setError] = useState(null);
   const [emailTesting, setEmailTesting] = useState(false);
   const [emailResult, setEmailResult] = useState(null);
+  const [testEmailTo, setTestEmailTo] = useState('');
 
   useEffect(() => {
     if (isOpen) {
@@ -32,7 +33,7 @@ function Settings({ isOpen, onClose }) {
     try {
       setEmailTesting(true);
       setEmailResult(null);
-      const result = await testEmailApi();
+      const result = await testEmailApi(testEmailTo || undefined);
       setEmailResult({ success: true, message: result.message });
     } catch (err) {
       setEmailResult({ success: false, message: err.message });
@@ -230,19 +231,29 @@ function Settings({ isOpen, onClose }) {
                   </div>
                 )}
 
-                <button
-                  className="api-refresh-btn"
-                  onClick={handleTestEmail}
-                  disabled={emailTesting || !apiStatus.emailConfig.configured}
-                  style={{ opacity: (!apiStatus.emailConfig.configured || emailTesting) ? 0.6 : 1 }}
-                >
-                  {emailTesting ? (
-                    <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                      <span className="mini-spinner" style={{ borderTopColor: 'white', borderColor: 'rgba(255,255,255,0.3)' }}></span>
-                      Sending...
-                    </span>
-                  ) : 'Send Test Email'}
-                </button>
+                <div className="email-test-row">
+                  <input
+                    type="email"
+                    className="email-test-input"
+                    placeholder={apiStatus.emailConfig.adminEmail || 'recipient@example.com'}
+                    value={testEmailTo}
+                    onChange={(e) => setTestEmailTo(e.target.value)}
+                    disabled={emailTesting || !apiStatus.emailConfig.configured}
+                  />
+                  <button
+                    className="email-test-btn"
+                    onClick={handleTestEmail}
+                    disabled={emailTesting || !apiStatus.emailConfig.configured}
+                    style={{ opacity: (!apiStatus.emailConfig.configured || emailTesting) ? 0.6 : 1 }}
+                  >
+                    {emailTesting ? (
+                      <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                        <span className="mini-spinner" style={{ borderTopColor: 'white', borderColor: 'rgba(255,255,255,0.3)', width: '16px', height: '16px' }}></span>
+                        Sending...
+                      </span>
+                    ) : 'Send Test'}
+                  </button>
+                </div>
               </>
             )}
           </div>

@@ -188,9 +188,13 @@ export const sendTestEmail = async (recipientEmail) => {
       `
     };
 
-    const isVerified = await verifyTransporter(transporter);
-    if (!isVerified) {
-      throw new Error('SMTP connection failed');
+    log('Verifying SMTP connection...');
+    try {
+      await transporter.verify();
+      log('SMTP connection verified');
+    } catch (verifyError) {
+      log(`SMTP verification failed: ${verifyError.message}`);
+      throw new Error(`SMTP connection failed: ${verifyError.message}`);
     }
 
     const result = await transporter.sendMail(mailOptions);
