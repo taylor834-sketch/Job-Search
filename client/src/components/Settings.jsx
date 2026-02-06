@@ -204,7 +204,7 @@ function Settings({ isOpen, onClose }) {
                   <div className="api-status-row">
                     <span className="api-label">Email Configured</span>
                     <span className={`api-value ${apiStatus.emailConfig.configured ? 'status-ok' : 'status-error'}`}>
-                      {apiStatus.emailConfig.configured ? 'Yes' : 'No - Add EMAIL_USER and EMAIL_PASSWORD to .env'}
+                      {apiStatus.emailConfig.configured ? 'Yes' : 'No - Add RESEND_API_KEY to env'}
                     </span>
                   </div>
                   {apiStatus.emailConfig.configured && (
@@ -214,8 +214,12 @@ function Settings({ isOpen, onClose }) {
                         <span className="api-value">{apiStatus.emailConfig.service}</span>
                       </div>
                       <div className="api-status-row" style={{ marginTop: '10px' }}>
-                        <span className="api-label">Sender</span>
+                        <span className="api-label">API Key</span>
                         <span className="api-value">{apiStatus.emailConfig.user}</span>
+                      </div>
+                      <div className="api-status-row" style={{ marginTop: '10px' }}>
+                        <span className="api-label">From</span>
+                        <span className="api-value">{apiStatus.emailConfig.fromAddress}</span>
                       </div>
                       <div className="api-status-row" style={{ marginTop: '10px' }}>
                         <span className="api-label">Admin Email</span>

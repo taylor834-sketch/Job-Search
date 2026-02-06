@@ -1,4 +1,4 @@
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 import dotenv from 'dotenv';
 import { generateExcelFile } from './excelExport.js';
 
@@ -11,42 +11,19 @@ const escapeHtml = (str) =>
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
 
-// Create transporter with timeout settings
-const createTransporter = () => {
-  const emailUser = process.env.EMAIL_USER;
-  const emailPass = process.env.EMAIL_PASSWORD;
-  const emailService = process.env.EMAIL_SERVICE || 'gmail';
-
-  if (!emailUser || !emailPass) {
-    console.error('[Email] ERROR: EMAIL_USER or EMAIL_PASSWORD not configured!');
+// Create Resend client
+const getResendClient = () => {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    console.error('[Email] ERROR: RESEND_API_KEY not configured!');
     return null;
   }
-
-  console.log(`[Email] Creating transporter for ${emailUser} via ${emailService}`);
-
-  return nodemailer.createTransport({
-    service: emailService,
-    auth: {
-      user: emailUser,
-      pass: emailPass
-    },
-    // Add timeouts to prevent hanging
-    connectionTimeout: 10000, // 10 seconds to establish connection
-    greetingTimeout: 10000,   // 10 seconds for greeting
-    socketTimeout: 30000      // 30 seconds for socket inactivity
-  });
+  return new Resend(apiKey);
 };
 
-// Verify transporter connection
-const verifyTransporter = async (transporter) => {
-  try {
-    await transporter.verify();
-    console.log('[Email] SMTP connection verified successfully');
-    return true;
-  } catch (error) {
-    console.error('[Email] SMTP verification failed:', error.message);
-    return false;
-  }
+// Get the "from" address - Resend requires a verified domain or use onboarding address
+const getFromAddress = () => {
+  return process.env.EMAIL_FROM || 'Jobinator 3000 <onboarding@resend.dev>';
 };
 
 export const sendJobAlertEmail = async (recipientEmail, jobs, searchCriteria) => {
@@ -54,13 +31,13 @@ export const sendJobAlertEmail = async (recipientEmail, jobs, searchCriteria) =>
   const log = (msg) => console.log(`[Email] [${((Date.now() - startTime) / 1000).toFixed(1)}s] ${msg}`);
 
   try {
-    const transporter = createTransporter();
-    if (!transporter) {
-      throw new Error('Email not configured - missing EMAIL_USER or EMAIL_PASSWORD environment variables');
+    const resend = getResendClient();
+    if (!resend) {
+      throw new Error('Email not configured - missing RESEND_API_KEY environment variable');
     }
 
     const adminEmail = process.env.ADMIN_EMAIL || 'Taylor@realsimplerevops.com';
-    const fromEmail = process.env.EMAIL_USER;
+    const fromAddress = getFromAddress();
 
     // Always include admin email
     const recipients = [adminEmail];
@@ -68,7 +45,7 @@ export const sendJobAlertEmail = async (recipientEmail, jobs, searchCriteria) =>
       recipients.push(recipientEmail);
     }
 
-    log(`From: ${fromEmail}`);
+    log(`From: ${fromAddress}`);
     log(`To: ${recipients.join(', ')}`);
     log(`Generating Excel for ${jobs.length} jobs...`);
 
@@ -106,61 +83,59 @@ export const sendJobAlertEmail = async (recipientEmail, jobs, searchCriteria) =>
       ${searchCriteria.datePosted && searchCriteria.datePosted !== 'all' ? `<p><strong>Date Posted:</strong> ${escapeHtml(searchCriteria.datePosted)}</p>` : ''}
     `;
 
-    const mailOptions = {
-      from: fromEmail,
-      to: recipients.join(', '),
-      subject: `Job Alert: ${jobs.length} New Job${jobs.length !== 1 ? 's' : ''} Found`,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto;">
-          <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
-            <h1 style="margin: 0;">Job Search Alert</h1>
-            <p style="margin: 10px 0 0 0;">We found ${jobs.length} new job${jobs.length !== 1 ? 's' : ''} matching your criteria!</p>
-          </div>
-
-          <div style="padding: 20px; background: #e8f5e9; border-left: 4px solid #4CAF50;">
-            <p style="margin: 0; font-size: 14px;">
-              <strong>📎 Excel file attached!</strong> Open the attachment to see all ${jobs.length} jobs in a spreadsheet for easy filtering and tracking.
-            </p>
-          </div>
-
-          <div style="padding: 20px; background: #f9f9f9;">
-            <h2 style="color: #333;">Search Criteria</h2>
-            ${criteriaHtml}
-          </div>
-
-          <div style="padding: 20px;">
-            <h2 style="color: #333;">Job Listings</h2>
-            ${jobsHtml}
-          </div>
-
-          <div style="background: #f0f0f0; padding: 20px; text-align: center; border-radius: 0 0 10px 10px;">
-            <p style="margin: 0; color: #666;">This is an automated job alert from Jobinator 3000</p>
-          </div>
+    const htmlBody = `
+      <div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto;">
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+          <h1 style="margin: 0;">Job Search Alert</h1>
+          <p style="margin: 10px 0 0 0;">We found ${jobs.length} new job${jobs.length !== 1 ? 's' : ''} matching your criteria!</p>
         </div>
-      `,
+
+        <div style="padding: 20px; background: #e8f5e9; border-left: 4px solid #4CAF50;">
+          <p style="margin: 0; font-size: 14px;">
+            <strong>📎 Excel file attached!</strong> Open the attachment to see all ${jobs.length} jobs in a spreadsheet for easy filtering and tracking.
+          </p>
+        </div>
+
+        <div style="padding: 20px; background: #f9f9f9;">
+          <h2 style="color: #333;">Search Criteria</h2>
+          ${criteriaHtml}
+        </div>
+
+        <div style="padding: 20px;">
+          <h2 style="color: #333;">Job Listings</h2>
+          ${jobsHtml}
+        </div>
+
+        <div style="background: #f0f0f0; padding: 20px; text-align: center; border-radius: 0 0 10px 10px;">
+          <p style="margin: 0; color: #666;">This is an automated job alert from Jobinator 3000</p>
+        </div>
+      </div>
+    `;
+
+    log('Sending via Resend API...');
+    const { data, error } = await resend.emails.send({
+      from: fromAddress,
+      to: recipients,
+      subject: `Job Alert: ${jobs.length} New Job${jobs.length !== 1 ? 's' : ''} Found`,
+      html: htmlBody,
       attachments: [
         {
           filename: `job-search-results-${today}.xlsx`,
-          content: excelBuffer,
-          contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+          content: excelBuffer.toString('base64'),
+          content_type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         }
       ]
-    };
+    });
 
-    log('Verifying SMTP connection...');
-    const isVerified = await verifyTransporter(transporter);
-    if (!isVerified) {
-      throw new Error('SMTP connection failed - check EMAIL_USER and EMAIL_PASSWORD');
+    if (error) {
+      log(`Resend API error: ${error.message}`);
+      throw new Error(`Email send failed: ${error.message}`);
     }
 
-    log('Sending via SMTP...');
-    const result = await transporter.sendMail(mailOptions);
-    log(`Email sent! Message ID: ${result.messageId}`);
-    log(`Response: ${result.response}`);
+    log(`Email sent! ID: ${data.id}`);
     return true;
   } catch (error) {
     console.error('[Email] Error sending email:', error.message);
-    console.error('[Email] Full error:', error);
     throw error;
   }
 };
@@ -169,36 +144,36 @@ export const sendTestEmail = async (recipientEmail) => {
   const log = (msg) => console.log(`[Email] ${msg}`);
 
   try {
-    const transporter = createTransporter();
-    if (!transporter) {
-      throw new Error('Email not configured - missing EMAIL_USER or EMAIL_PASSWORD');
+    const resend = getResendClient();
+    if (!resend) {
+      throw new Error('Email not configured - missing RESEND_API_KEY');
     }
 
-    log(`Sending test email to ${recipientEmail}...`);
+    const fromAddress = getFromAddress();
+    log(`Sending test email to ${recipientEmail} from ${fromAddress}...`);
 
-    const mailOptions = {
-      from: process.env.EMAIL_USER,
-      to: recipientEmail,
-      subject: 'Job Search Aggregator - Test Email',
+    const { data, error } = await resend.emails.send({
+      from: fromAddress,
+      to: [recipientEmail],
+      subject: 'Jobinator 3000 - Test Email',
       html: `
-        <div style="font-family: Arial, sans-serif; padding: 20px;">
-          <h1>Email Configuration Successful!</h1>
-          <p>Your job search alerts are now configured and ready to go.</p>
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+            <h1 style="margin: 0;">Email Configuration Successful!</h1>
+          </div>
+          <div style="padding: 30px; background: #f9f9f9; border-radius: 0 0 10px 10px;">
+            <p style="margin: 0; font-size: 16px; color: #333;">Your job search alerts are now configured and ready to go.</p>
+          </div>
         </div>
       `
-    };
+    });
 
-    log('Verifying SMTP connection...');
-    try {
-      await transporter.verify();
-      log('SMTP connection verified');
-    } catch (verifyError) {
-      log(`SMTP verification failed: ${verifyError.message}`);
-      throw new Error(`SMTP connection failed: ${verifyError.message}`);
+    if (error) {
+      log(`Resend API error: ${error.message}`);
+      throw new Error(`Test email failed: ${error.message}`);
     }
 
-    const result = await transporter.sendMail(mailOptions);
-    log(`Test email sent! Message ID: ${result.messageId}`);
+    log(`Test email sent! ID: ${data.id}`);
     return true;
   } catch (error) {
     console.error('[Email] Error sending test email:', error.message);
@@ -208,10 +183,12 @@ export const sendTestEmail = async (recipientEmail) => {
 
 // Export a function to check email configuration
 export const checkEmailConfig = () => {
+  const resendKey = process.env.RESEND_API_KEY;
   const config = {
-    configured: !!(process.env.EMAIL_USER && process.env.EMAIL_PASSWORD),
-    service: process.env.EMAIL_SERVICE || 'gmail',
-    user: process.env.EMAIL_USER ? `${process.env.EMAIL_USER.substring(0, 3)}***` : 'NOT SET',
+    configured: !!resendKey,
+    service: 'Resend',
+    user: resendKey ? `${resendKey.substring(0, 6)}***` : 'NOT SET',
+    fromAddress: process.env.EMAIL_FROM || 'onboarding@resend.dev',
     adminEmail: process.env.ADMIN_EMAIL || 'Taylor@realsimplerevops.com'
   };
   console.log('[Email] Configuration:', config);

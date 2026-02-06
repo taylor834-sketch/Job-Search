@@ -26,9 +26,9 @@ if (!process.env.GITHUB_TOKEN) {
   console.warn('    Set GITHUB_TOKEN in your environment for persistent storage.');
 }
 
-if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
-  console.warn('⚠️  EMAIL_USER or EMAIL_PASSWORD is not set — email alerts will NOT work.');
-  console.warn('    Set these in your environment variables for email functionality.');
+if (!process.env.RESEND_API_KEY) {
+  console.warn('⚠️  RESEND_API_KEY is not set — email alerts will NOT work.');
+  console.warn('    Get a free API key at https://resend.com and set it in your environment.');
 }
 
 // Ensure the data directory exists so node-json-db can write its files
