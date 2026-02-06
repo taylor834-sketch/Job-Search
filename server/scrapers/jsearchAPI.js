@@ -591,10 +591,50 @@ export const searchJSearchAPI = async (filters, options = {}) => {
     debug.afterRemoteFilter = transformedJobs.length + debug.remoteFilteredOut; // before remote ran
     debug.afterSalaryFilter = transformedJobs.length; // after salary + remote both ran
 
+    // === DATE FILTER ===
+    // JSearch API's date_posted param is unreliable — it often returns jobs older than requested.
+    // We enforce the date filter ourselves by checking each job's postingDate.
+    debug.dateFilteredOut = 0;
+    debug.dateReasons = [];
+
+    let dateFilteredJobs = transformedJobs;
+    if (datePosted && datePosted !== 'all') {
+      const now = new Date();
+      // Set cutoff to start of the relevant day (midnight UTC)
+      let cutoffDate;
+      if (datePosted === 'today') {
+        // "today" = posted today (same calendar date UTC)
+        cutoffDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+      } else if (datePosted === '3days') {
+        cutoffDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 3));
+      } else if (datePosted === 'week') {
+        cutoffDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 7));
+      } else if (datePosted === 'month') {
+        cutoffDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, now.getUTCDate()));
+      }
+
+      if (cutoffDate) {
+        dateFilteredJobs = transformedJobs.filter(job => {
+          const jobDate = new Date(job.postingDate);
+          if (isNaN(jobDate.getTime())) return true; // keep jobs with unparseable dates
+          if (jobDate >= cutoffDate) return true;
+          debug.dateFilteredOut++;
+          debug.dateReasons.push({
+            title: job.title,
+            postingDate: job.postingDate,
+            cutoff: cutoffDate.toISOString()
+          });
+          return false;
+        });
+        log(`Date filter (${datePosted}): kept ${dateFilteredJobs.length}, dropped ${debug.dateFilteredOut} jobs posted before ${cutoffDate.toISOString()}`);
+      }
+    }
+    debug.afterDateFilter = dateFilteredJobs.length;
+
     // Keep only full-time (or unclassified) jobs — drop explicit Part-Time / Contract / etc.
     // JSearch mislabels many remote jobs, so null/undefined counts as full-time.
     const nonFullTimeTypes = ['Part-Time', 'Contract', 'Temporary', 'Internship'];
-    let filteredJobs = transformedJobs.filter(job => {
+    let filteredJobs = dateFilteredJobs.filter(job => {
       if (nonFullTimeTypes.includes(job.employmentType)) {
         debug.employmentFilteredOut++;
         debug.employmentReasons.push({ title: job.title, employmentType: job.employmentType });
