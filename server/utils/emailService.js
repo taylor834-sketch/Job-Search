@@ -21,6 +21,9 @@ const transporter = nodemailer.createTransport({
 
 export const sendJobAlertEmail = async (recipientEmail, jobs, searchCriteria) => {
   try {
+    const startTime = Date.now();
+    const log = (msg) => console.log(`[Email] [${((Date.now() - startTime) / 1000).toFixed(1)}s] ${msg}`);
+
     const adminEmail = process.env.ADMIN_EMAIL || 'Taylor@realsimplerevops.com';
 
     // Always include admin email
@@ -29,8 +32,10 @@ export const sendJobAlertEmail = async (recipientEmail, jobs, searchCriteria) =>
       recipients.push(recipientEmail);
     }
 
+    log(`Generating Excel for ${jobs.length} jobs...`);
     // Generate Excel file attachment
     const excelBuffer = await generateExcelFile(jobs);
+    log('Excel generated');
     const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
 
     const jobsHtml = jobs.map((job, index) => `
@@ -103,8 +108,9 @@ export const sendJobAlertEmail = async (recipientEmail, jobs, searchCriteria) =>
       ]
     };
 
+    log('Sending via SMTP...');
     await transporter.sendMail(mailOptions);
-    console.log(`Email sent to: ${recipients.join(', ')} with Excel attachment`);
+    log(`Email sent to: ${recipients.join(', ')}`);
     return true;
   } catch (error) {
     console.error('Error sending email:', error);

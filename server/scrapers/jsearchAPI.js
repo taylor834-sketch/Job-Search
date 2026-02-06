@@ -96,14 +96,15 @@ const normalizeSalary = (raw) => {
 };
 
 // Scrape salary from an actual job posting page
+// NOTE: This is slow (up to 3s per page) - only used when skipScraping is false
 const scrapeSalaryFromPage = async (url) => {
   try {
     const response = await axios.get(url, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
       },
-      timeout: 8000,
-      maxContentLength: 2 * 1024 * 1024 // 2MB cap on response size
+      timeout: 3000, // Reduced from 8s to 3s for faster processing
+      maxContentLength: 1 * 1024 * 1024 // 1MB cap (reduced from 2MB)
     });
     const $ = cheerio.load(response.data);
 
@@ -126,7 +127,7 @@ const scrapeSalaryFromPage = async (url) => {
     });
 
     // Grab body text as fallback, but cap it to avoid regex thrashing on huge pages
-    const bodyText = $('body').text().substring(0, 50000);
+    const bodyText = $('body').text().substring(0, 30000); // Reduced from 50k
     candidates.push(bodyText);
 
     // Run salary extraction on all candidates
@@ -141,10 +142,14 @@ const scrapeSalaryFromPage = async (url) => {
   }
 };
 
-export const searchJSearchAPI = async (filters) => {
+export const searchJSearchAPI = async (filters, options = {}) => {
   const { jobTitle, jobTitles, locationType, location, minSalary, maxSalary, datePosted } = filters;
+  const { skipScraping = false } = options; // Skip slow salary scraping for faster results
 
-  console.log('Searching JSearch API (Google Jobs, LinkedIn, Indeed)...');
+  const searchStartTime = Date.now();
+  const log = (msg) => console.log(`[JSearch] [${((Date.now() - searchStartTime) / 1000).toFixed(1)}s] ${msg}`);
+
+  log('Starting search...');
 
   try {
     const apiKey = process.env.JSEARCH_API_KEY;
@@ -165,7 +170,7 @@ export const searchJSearchAPI = async (filters) => {
       titlesToSearch = ['software engineer'];
     }
 
-    console.log(`Searching for ${titlesToSearch.length} job title(s):`, titlesToSearch);
+    log(`Searching for ${titlesToSearch.length} job title(s): ${titlesToSearch.join(', ')}`);
 
     // Build base query modifiers
     let queryModifiers = '';
@@ -211,7 +216,7 @@ export const searchJSearchAPI = async (filters) => {
       if (quotaError) break;
 
       const query = title + queryModifiers;
-      console.log(`Searching for: "${query}"`);
+      log(`Fetching: "${query}"`);
 
       const baseParams = {
         query: query,
@@ -252,7 +257,7 @@ export const searchJSearchAPI = async (filters) => {
               newJobs++;
             }
           }
-          console.log(`JSearch "${title}" page ${page}: ${pageJobs.length} jobs (${newJobs} new)`);
+          log(`"${title}" page ${page}: ${pageJobs.length} jobs (${newJobs} new)`);
         } catch (pageError) {
           console.warn(`JSearch "${title}" page ${page} failed:`, pageError.message);
           // Record the failed page request
@@ -284,7 +289,7 @@ export const searchJSearchAPI = async (filters) => {
       await recordApiCall(pagesRequested, 'success', null);
     }
 
-    console.log(`JSearch API returned ${jobs.length} total unique jobs across all titles`);
+    log(`API returned ${jobs.length} total unique jobs across all titles`);
 
     // Debug counters — track how many jobs each filter stage drops
     const debug = {
@@ -551,11 +556,14 @@ export const searchJSearchAPI = async (filters) => {
     }
 
     // Post-processing: scrape salary from job pages for jobs missing it
+    // This is SLOW (up to 3s per job) - skip for scheduled searches to avoid timeouts
     const missingSalary = filteredJobs.filter(j => j.salary === 'Not specified' && j.link && j.link !== '#');
-    console.log(`${missingSalary.length} jobs missing salary - attempting to scrape from job pages...`);
 
-    if (missingSalary.length > 0) {
-      const SCRAPE_LIMIT = 15;
+    if (skipScraping) {
+      log(`${missingSalary.length} jobs missing salary - SKIPPING scraping (skipScraping=true)`);
+    } else if (missingSalary.length > 0) {
+      log(`${missingSalary.length} jobs missing salary - scraping up to 5 job pages...`);
+      const SCRAPE_LIMIT = 5; // Reduced from 15 to 5 for faster processing
       const toScrape = missingSalary.slice(0, SCRAPE_LIMIT);
 
       const scraped = await Promise.all(
@@ -573,12 +581,11 @@ export const searchJSearchAPI = async (filters) => {
           }
         }
       });
-      console.log(`Scraped salary from job pages for ${scrapedCount} additional jobs`);
+      log(`Scraped salary from ${scrapedCount} job pages`);
     }
 
     const jobsWithSalary = filteredJobs.filter(job => job.salary !== 'Not specified').length;
-    console.log(`Returning ${filteredJobs.length} jobs after filtering (${jobsWithSalary} with salary info)`);
-    console.log('Filter debug:', JSON.stringify(debug));
+    log(`Returning ${filteredJobs.length} jobs (${jobsWithSalary} with salary). Total time: ${((Date.now() - searchStartTime) / 1000).toFixed(1)}s`);
 
     return { jobs: filteredJobs, debug };
 

@@ -302,6 +302,9 @@ export const runRecurringSearchNow = async (req, res) => {
     // Run the actual search in the background (after response is sent)
     setImmediate(async () => {
       const status = runNowStatus.get(statusKey);
+      const startTime = Date.now();
+      const log = (msg) => console.log(`[RunNow ${statusKey}] [${((Date.now() - startTime) / 1000).toFixed(1)}s] ${msg}`);
+
       try {
         const { searchCriteria } = search;
 
@@ -316,37 +319,44 @@ export const runRecurringSearchNow = async (req, res) => {
         }
 
         status.message = 'Searching for jobs...';
-        console.log(`[RunNow ${statusKey}] Starting search for: ${JSON.stringify(searchParams.jobTitles || searchParams.jobTitle)}`);
+        log(`Starting search for: ${JSON.stringify(searchParams.jobTitles || searchParams.jobTitle)}`);
 
         // Run the search (use 'week' for more results in manual runs)
-        const { jobs, debug } = await searchJSearchAPI(searchParams);
+        // Skip slow salary scraping for faster email delivery
+        const { jobs, debug } = await searchJSearchAPI(searchParams, { skipScraping: true });
         status.debug = debug;
 
-        console.log(`[RunNow ${statusKey}] Found ${jobs.length} jobs`);
+        log(`API returned ${jobs.length} jobs`);
 
         if (jobs.length === 0) {
           status.status = 'completed';
           status.message = 'Search completed but no jobs found. No email sent.';
           status.jobsFound = 0;
-          console.log(`[RunNow ${statusKey}] No jobs found, no email sent`);
+          log('No jobs found, no email sent');
           return;
         }
 
-        status.message = `Found ${jobs.length} jobs, sending email...`;
+        status.message = `Found ${jobs.length} jobs, generating Excel...`;
+        log(`Preparing email with ${jobs.length} jobs...`);
 
         // Send the email
+        status.message = `Found ${jobs.length} jobs, sending email...`;
+        log('Sending email...');
         await sendJobAlertEmail(search.userEmail, jobs, searchCriteria);
+        log('Email sent!');
 
         // Update last run time
+        log('Updating last run time...');
         await updateLastRun(searchId);
 
         status.status = 'completed';
         status.message = `Email sent with ${jobs.length} job(s)!`;
         status.jobsFound = jobs.length;
-        console.log(`[RunNow ${statusKey}] Email sent successfully with ${jobs.length} jobs`);
+        log(`Complete! Total time: ${((Date.now() - startTime) / 1000).toFixed(1)}s`);
 
       } catch (error) {
-        console.error(`[RunNow ${statusKey}] Error:`, error);
+        log(`ERROR: ${error.message}`);
+        console.error(`[RunNow ${statusKey}] Full error:`, error);
         status.status = 'error';
         status.error = error.message;
         status.message = `Error: ${error.message}`;

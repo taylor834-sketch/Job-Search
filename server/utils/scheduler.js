@@ -20,8 +20,9 @@ const runScheduledSearch = async (search) => {
     }
 
     // JSearch API covers Google Jobs, LinkedIn, Indeed, and more
+    // Skip salary scraping for scheduled searches to avoid slow processing
     const daysBack = search.frequency === 'weekly' ? 7 : 1;
-    const { jobs: allJobs } = await searchJSearchAPI(searchParams);
+    const { jobs: allJobs } = await searchJSearchAPI(searchParams, { skipScraping: true });
 
     // Filter by posting date based on frequency
     let uniqueJobs = filterJobsByPostingDate(allJobs, daysBack);
