@@ -158,7 +158,14 @@ function SearchForm({ onResults, onLoading, onError }) {
       onResults(results.jobs || [], searchParams, results.debug || null);
 
       if (results.jobs.length === 0) {
-        onError('No jobs found. Try adjusting your search criteria.');
+        // Provide specific guidance based on search params
+        if (datePosted === 'today') {
+          onError('No jobs found posted today. Try "Last 7 Days" for more results.');
+        } else if (datePosted === '3days') {
+          onError('No jobs found in the last 3 days. Try "Last 7 Days" or "Last 30 Days" for more results.');
+        } else {
+          onError('No jobs found. Try broadening your search (different job titles, wider date range, or remove salary filters).');
+        }
       }
     } catch (error) {
       onError(error.message || 'Failed to search for jobs. Please try again.');
