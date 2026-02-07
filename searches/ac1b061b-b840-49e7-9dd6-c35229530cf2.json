@@ -2,22 +2,20 @@
   "id": "ac1b061b-b840-49e7-9dd6-c35229530cf2",
   "searchCriteria": {
     "jobTitles": [
-      "Accounting",
-      "accounting manager"
+      "Accounting"
     ],
     "locationType": [
       "remote"
     ],
     "minSalary": null,
     "maxSalary": null,
-    "datePosted": "today",
-    "jobTitle": "Accounting"
+    "datePosted": "today"
   },
   "frequency": "daily",
   "dayOfWeek": null,
-  "userEmail": "lakstin@gmail.com",
+  "userEmail": "taylor@realsimplerevops.com",
   "createdAt": "2026-02-06T19:38:08.191Z",
-  "lastRun": "2026-02-07T00:28:31.213Z",
+  "lastRun": "2026-02-07T00:55:42.269Z",
   "isActive": true,
   "runHistory": [
     {
@@ -26,6 +24,10 @@
     },
     {
       "timestamp": "2026-02-07T00:28:31.213Z",
+      "status": "completed"
+    },
+    {
+      "timestamp": "2026-02-07T00:55:42.269Z",
       "status": "completed"
     }
   ]
