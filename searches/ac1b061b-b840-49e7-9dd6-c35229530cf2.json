@@ -9,11 +9,12 @@
     ],
     "minSalary": null,
     "maxSalary": null,
-    "datePosted": "today"
+    "datePosted": "today",
+    "jobTitle": "Accounting"
   },
   "frequency": "daily",
   "dayOfWeek": null,
-  "userEmail": "taylor@realsimplerevops.com",
+  "userEmail": "taylor834@gmail.com",
   "createdAt": "2026-02-06T19:38:08.191Z",
   "lastRun": "2026-02-10T09:00:35.491Z",
   "isActive": true,
