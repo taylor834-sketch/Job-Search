@@ -15,7 +15,7 @@
   "dayOfWeek": null,
   "userEmail": "taylor@realsimplerevops.com",
   "createdAt": "2026-02-06T19:38:08.191Z",
-  "lastRun": "2026-02-09T09:00:31.489Z",
+  "lastRun": "2026-02-10T09:00:35.491Z",
   "isActive": true,
   "runHistory": [
     {
@@ -40,6 +40,10 @@
     },
     {
       "timestamp": "2026-02-09T09:00:31.489Z",
+      "status": "completed"
+    },
+    {
+      "timestamp": "2026-02-10T09:00:35.491Z",
       "status": "completed"
     }
   ]
