@@ -15,7 +15,12 @@
   "dayOfWeek": null,
   "userEmail": "lakstin@gmail.com",
   "createdAt": "2026-02-11T04:29:50.421Z",
-  "lastRun": null,
+  "lastRun": "2026-02-11T09:00:28.622Z",
   "isActive": true,
-  "runHistory": []
+  "runHistory": [
+    {
+      "timestamp": "2026-02-11T09:00:28.622Z",
+      "status": "completed"
+    }
+  ]
 }
