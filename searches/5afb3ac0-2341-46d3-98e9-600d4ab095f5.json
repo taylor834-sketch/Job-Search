@@ -1,0 +1,21 @@
+{
+  "id": "5afb3ac0-2341-46d3-98e9-600d4ab095f5",
+  "searchCriteria": {
+    "jobTitles": [
+      "Senior Accountant"
+    ],
+    "locationType": [
+      "remote"
+    ],
+    "minSalary": 80000,
+    "maxSalary": 205000,
+    "datePosted": "3days"
+  },
+  "frequency": "daily",
+  "dayOfWeek": null,
+  "userEmail": "lakstin@gmail.com",
+  "createdAt": "2026-02-11T04:29:50.421Z",
+  "lastRun": null,
+  "isActive": true,
+  "runHistory": []
+}
